@@ -119,7 +119,7 @@ export default function InputPage({ onBack, onResult }: InputPageProps) {
                   <th className="pb-2 pr-4">PID</th>
                   <th className="pb-2 pr-4">Arrival</th>
                   <th className="pb-2 pr-4">Burst</th>
-                  <th className="pb-2 pr-4">Priority</th>
+                  {algorithm === 'priority' && <th className="pb-2 pr-4">Priority</th>}
                   <th className="pb-2 w-10" />
                 </tr>
               </thead>
@@ -152,15 +152,17 @@ export default function InputPage({ onBack, onResult }: InputPageProps) {
                           className="w-20 bg-dark-900 border border-slate-600 rounded px-2 py-1 text-white font-mono focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                         />
                       </td>
-                      <td className="py-2 pr-4">
-                        <input
-                          type="number"
-                          min={0}
-                          value={p.priority ?? 0}
-                          onChange={(e) => updateProcess(p.pid, 'priority', Number(e.target.value) || 0)}
-                          className="w-20 bg-dark-900 border border-slate-600 rounded px-2 py-1 text-white font-mono focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        />
-                      </td>
+                      {algorithm === 'priority' && (
+                        <td className="py-2 pr-4">
+                          <input
+                            type="number"
+                            min={0}
+                            value={p.priority ?? 0}
+                            onChange={(e) => updateProcess(p.pid, 'priority', Number(e.target.value) || 0)}
+                            className="w-20 bg-dark-900 border border-slate-600 rounded px-2 py-1 text-white font-mono focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                          />
+                        </td>
+                      )}
                       <td className="py-2">
                         <button
                           type="button"

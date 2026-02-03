@@ -1,8 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { evaluateAndSwitch } from './evaluator/switcher';
+import { logger } from './logger';
 import type { SimulateRequest, SimulateResponse, AlgorithmType } from './types';
 
 const router = Router();
+const log = logger.child({ route: 'simulate' });
 
 function normalizeAlgorithm(algo: string): AlgorithmType {
   const map: Record<string, AlgorithmType> = {
@@ -23,6 +25,7 @@ router.post('/simulate', (req: Request, res: Response) => {
     const timeQuantum = typeof body.timeQuantum === 'number' ? body.timeQuantum : 2;
 
     if (processes.length === 0) {
+      log.warn('Simulate rejected: no processes', { algorithm });
       res.status(400).json({ error: 'At least one process is required.' });
       return;
     }
@@ -34,11 +37,22 @@ router.post('/simulate', (req: Request, res: Response) => {
       priority: p.priority != null ? Number(p.priority) : undefined,
     }));
 
+    log.debug('Running simulation', { algorithm, processCount: withPids.length, timeQuantum });
+
     const { useAlgorithm, reason, usedResult } = evaluateAndSwitch(
       algorithm,
       withPids,
       timeQuantum
     );
+
+    if (reason) {
+      log.info('Algorithm switched', {
+        chosen: algorithm,
+        used: useAlgorithm,
+        reason,
+        contextSwitches: usedResult.contextSwitches,
+      });
+    }
 
     const ganttChart = usedResult.ganttChart.filter((e) => !e.isContextSwitch);
 
@@ -52,9 +66,17 @@ router.post('/simulate', (req: Request, res: Response) => {
       contextSwitches: usedResult.contextSwitches,
     };
 
+    log.debug('Simulation completed', {
+      usedAlgorithm: useAlgorithm,
+      avgWaitingTime: usedResult.metrics.avgWaitingTime,
+      avgTurnaroundTime: usedResult.metrics.avgTurnaroundTime,
+    });
     res.json(response);
   } catch (err) {
-    console.error(err);
+    log.error('Simulation failed', {
+      error: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+    });
     res.status(500).json({ error: 'Simulation failed.', details: String(err) });
   }
 });
