@@ -1,8 +1,15 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart } from '@mui/x-charts/BarChart';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 import GanttChart from '../components/GanttChart';
 import type { SimulateResponse, AlgorithmType } from '../types';
+
+const darkTheme = createTheme({
+  palette: {
+    mode: 'dark',
+  },
+});
 
 const ALG_LABELS: Record<AlgorithmType, string> = {
   fcfs: 'FCFS',
@@ -120,25 +127,57 @@ export default function Results({ result, onTryAgain, onBack }: ResultsProps) {
         <span className="font-mono text-[11px] text-white/40 tracking-widest uppercase block mb-4">
           Per-process waiting & turnaround
         </span>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-              <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }} />
-              <YAxis tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: 'rgba(0,0,0,0.9)',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  borderRadius: 12,
-                }}
-                labelStyle={{ color: 'rgba(255,255,255,0.9)' }}
-                formatter={(value: number) => [`${value} ms`, '']}
-                labelFormatter={(label) => `Process ${label}`}
-              />
-              <Bar dataKey="waiting" name="Waiting" fill="rgba(255,255,255,0.9)" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="turnaround" name="Turnaround" fill="rgba(255,255,255,0.5)" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="h-72">
+          <ThemeProvider theme={darkTheme}>
+            <BarChart
+              xAxis={[{
+                scaleType: 'band',
+                data: chartData.map((d) => d.name),
+                tickLabelStyle: {
+                  fill: 'rgba(255,255,255,0.5)',
+                  fontSize: 11,
+                },
+              }]}
+              yAxis={[{
+                tickLabelStyle: {
+                  fill: 'rgba(255,255,255,0.5)',
+                  fontSize: 11,
+                },
+              }]}
+              series={[
+                {
+                  data: chartData.map((d) => d.waiting),
+                  label: 'Waiting (ms)',
+                  color: 'rgba(255,255,255,0.9)',
+                },
+                {
+                  data: chartData.map((d) => d.turnaround),
+                  label: 'Turnaround (ms)',
+                  color: 'rgba(255,255,255,0.5)',
+                },
+              ]}
+              height={280}
+              margin={{ top: 20, right: 20, bottom: 30, left: 40 }}
+              slotProps={{
+                legend: {
+                  labelStyle: {
+                    fill: 'rgba(255,255,255,0.7)',
+                    fontSize: 11,
+                  },
+                  position: { vertical: 'top', horizontal: 'right' },
+                  padding: 0,
+                },
+              }}
+              sx={{
+                '.MuiChartsAxis-line': {
+                  stroke: 'rgba(255,255,255,0.2)',
+                },
+                '.MuiChartsAxis-tick': {
+                  stroke: 'rgba(255,255,255,0.2)',
+                },
+              }}
+            />
+          </ThemeProvider>
         </div>
       </motion.section>
 
