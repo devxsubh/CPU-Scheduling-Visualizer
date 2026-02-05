@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import {
   AnimatedWords,
@@ -58,16 +59,16 @@ export default function Landing({ onStart }: LandingProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
       >
-        <div className="flex items-center gap-3">
+        <Link to="/" className="flex items-center gap-3">
           <img src="/favicon.svg" alt="CPU Scheduler" className="w-8 h-8" />
           <span className="font-display font-semibold text-white text-lg hidden sm:block">CPU Scheduler</span>
-        </div>
-        <button
-          onClick={onStart}
+        </Link>
+        <Link
+          to="/simulator"
           className="px-5 py-2 rounded-full bg-white text-black font-semibold text-sm hover:bg-white/90 transition-colors duration-200"
         >
           Get Started
-        </button>
+        </Link>
       </motion.header>
 
       <ScrollProgress />
