@@ -363,8 +363,6 @@ export default function Landing({ onStart }: LandingProps) {
         </motion.div>
       </section>
 
-      <SectionDivider />
-
       {/* ——— 8. Footer ——— */}
       <motion.footer
         className="py-10 px-6 sm:px-12 bg-black"
