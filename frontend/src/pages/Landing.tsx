@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import {
   AnimatedWords,
@@ -20,10 +20,6 @@ import {
   PatternDots,
 } from '../components/landing';
 
-interface LandingProps {
-  onStart: () => void;
-}
-
 const viewport = { once: true, amount: 0.12 };
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 40 },
@@ -40,7 +36,8 @@ const cardVariants = {
   },
 };
 
-export default function Landing({ onStart }: LandingProps) {
+export default function Landing() {
+  const navigate = useNavigate();
   const problemRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll();
   const heroOpacity = useTransform(scrollYProgress, [0, 0.15], [1, 0]);
@@ -359,7 +356,7 @@ export default function Landing({ onStart }: LandingProps) {
           viewport={viewport}
           transition={{ type: 'spring', stiffness: 80, damping: 18, delay: 0.12 }}
         >
-          <GlowButton onClick={onStart}>Launch Simulator</GlowButton>
+          <GlowButton onClick={() => navigate('/simulator')}>Launch Simulator</GlowButton>
         </motion.div>
       </section>
 
