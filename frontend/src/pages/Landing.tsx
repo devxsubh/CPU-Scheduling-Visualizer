@@ -51,9 +51,28 @@ export default function Landing({ onStart }: LandingProps) {
 
   return (
     <motion.div className="bg-black text-white" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      {/* ——— Header ——— */}
+      <motion.header
+        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 sm:px-12 md:px-20 py-4 bg-black/80 backdrop-blur-md border-b border-white/10"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+      >
+        <div className="flex items-center gap-3">
+          <img src="/favicon.svg" alt="CPU Scheduler" className="w-8 h-8" />
+          <span className="font-display font-semibold text-white text-lg hidden sm:block">CPU Scheduler</span>
+        </div>
+        <button
+          onClick={onStart}
+          className="px-5 py-2 rounded-full bg-white text-black font-semibold text-sm hover:bg-white/90 transition-colors duration-200"
+        >
+          Get Started
+        </button>
+      </motion.header>
+
       <ScrollProgress />
       {/* ——— 1. Hero ——— */}
-      <section className="min-h-screen flex flex-col justify-center items-center text-center px-6 sm:px-12 md:px-20 pt-24 pb-32 relative">
+      <section className="min-h-screen flex flex-col justify-center items-center text-center px-6 sm:px-12 md:px-20 pt-32 pb-32 relative">
         <GridBackground />
         <PatternDots />
         <FloatingShapes />
