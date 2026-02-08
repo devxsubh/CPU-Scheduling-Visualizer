@@ -851,58 +851,6 @@ export default function Simulator() {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.3 }}
             >
-              {/* Step controls & Export */}
-              <div className="p-4 rounded-xl bg-white/[0.04] border border-white/10 flex flex-wrap items-center gap-4 mb-6">
-                {/* <span className="font-mono text-[10px] text-white/50 uppercase tracking-wider mr-2">Step through</span> */}
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => { setPlaying(false); setStepIndex((i) => Math.max(-1, i - 1)); }}
-                    className="p-2 rounded-lg border border-white/20 text-white/80 hover:bg-white/10 font-mono text-xs"
-                    title="Previous step"
-                  >←</button>
-                  <button
-                    type="button"
-                    onClick={() => setPlaying((p) => !p)}
-                    disabled={!result.ganttChart.length}
-                    className="p-2 rounded-lg border border-white/20 text-white/80 hover:bg-white/10 font-mono text-xs disabled:opacity-50"
-                    title={playing ? 'Pause' : 'Play'}
-                  >{playing ? '⏸' : '▶'}</button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPlaying(false);
-                      setStepIndex((i) =>
-                        i >= (result.ganttChart?.length ?? 0) - 1 ? i : i + 1
-                      );
-                    }}
-                    disabled={stepIndex >= (result.ganttChart?.length ?? 0) - 1}
-                    className="p-2 rounded-lg border border-white/20 text-white/80 hover:bg-white/10 font-mono text-xs disabled:opacity-50"
-                    title="Next step"
-                  >→</button>
-                  <button
-                    type="button"
-                    onClick={() => { setPlaying(false); setStepIndex(-1); }}
-                    className="p-2 rounded-lg border border-white/20 text-white/80 hover:bg-white/10 font-mono text-xs"
-                    title="Show all"
-                  >↺</button>
-                </div>
-                <span className="font-mono text-white/50 text-xs">
-                  Step {stepIndex < 0 ? 'all' : `${stepIndex + 1} / ${result.ganttChart?.length ?? 0}`}
-                </span>
-                {currentStepEntry && (
-                  <span className="text-white/60 text-xs">
-                    Current: P{currentStepEntry.pid} (t={currentStepEntry.start}–{currentStepEntry.end})
-                    {readyQueueAtStep.length > 0 && ` · Ready: P${readyQueueAtStep.join(', P')}`}
-                  </span>
-                )}
-                {stepExplanation && (
-                  <p className="w-full font-sans text-xs text-white/70 bg-white/[0.06] rounded-lg px-3 py-2 border border-white/10" role="status">
-                    {stepExplanation}
-                  </p>
-                )}
-              </div>
-
               {/* Algorithm Switch Notice */}
               {switched && (
                 <motion.div
@@ -961,6 +909,57 @@ export default function Simulator() {
                     </p>
                   </motion.div>
                 ))}
+              </div>
+
+              {/* Step controls – next to Gantt Chart */}
+              <div className="p-4 rounded-xl bg-white/[0.04] border border-white/10 flex flex-wrap items-center gap-4 mb-4">
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => { setPlaying(false); setStepIndex((i) => Math.max(-1, i - 1)); }}
+                    className="p-2 rounded-lg border border-white/20 text-white/80 hover:bg-white/10 font-mono text-xs"
+                    title="Previous step"
+                  >←</button>
+                  <button
+                    type="button"
+                    onClick={() => setPlaying((p) => !p)}
+                    disabled={!result.ganttChart.length}
+                    className="p-2 rounded-lg border border-white/20 text-white/80 hover:bg-white/10 font-mono text-xs disabled:opacity-50"
+                    title={playing ? 'Pause' : 'Play'}
+                  >{playing ? '⏸' : '▶'}</button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPlaying(false);
+                      setStepIndex((i) =>
+                        i >= (result.ganttChart?.length ?? 0) - 1 ? i : i + 1
+                      );
+                    }}
+                    disabled={stepIndex >= (result.ganttChart?.length ?? 0) - 1}
+                    className="p-2 rounded-lg border border-white/20 text-white/80 hover:bg-white/10 font-mono text-xs disabled:opacity-50"
+                    title="Next step"
+                  >→</button>
+                  <button
+                    type="button"
+                    onClick={() => { setPlaying(false); setStepIndex(-1); }}
+                    className="p-2 rounded-lg border border-white/20 text-white/80 hover:bg-white/10 font-mono text-xs"
+                    title="Show all"
+                  >↺</button>
+                </div>
+                <span className="font-mono text-white/50 text-xs">
+                  Step {stepIndex < 0 ? 'all' : `${stepIndex + 1} / ${result.ganttChart?.length ?? 0}`}
+                </span>
+                {currentStepEntry && (
+                  <span className="text-white/60 text-xs">
+                    Current: P{currentStepEntry.pid} (t={currentStepEntry.start}–{currentStepEntry.end})
+                    {readyQueueAtStep.length > 0 && ` · Ready: P${readyQueueAtStep.join(', P')}`}
+                  </span>
+                )}
+                {stepExplanation && (
+                  <p className="w-full font-sans text-xs text-white/70 bg-white/[0.06] rounded-lg px-3 py-2 border border-white/10" role="status">
+                    {stepExplanation}
+                  </p>
+                )}
               </div>
 
               {/* Gantt Chart */}
