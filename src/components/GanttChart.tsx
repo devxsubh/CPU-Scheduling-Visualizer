@@ -28,6 +28,15 @@ export default function GanttChart({ data, maxTime, height = 280 }: GanttChartPr
   const pids = [...new Set(data.map((d) => d.pid))].filter((p) => p > 0).sort((a, b) => a - b);
   const rowHeight = Math.max(32, (height - 50) / Math.max(1, pids.length));
 
+  // Context switches: boundaries where consecutive segments (by time) have different PIDs
+  const sortedByTime = [...data].filter((d) => d.pid > 0).sort((a, b) => a.start - b.start);
+  const contextSwitchTimes: number[] = [];
+  for (let i = 1; i < sortedByTime.length; i++) {
+    if (sortedByTime[i].pid !== sortedByTime[i - 1].pid) {
+      contextSwitchTimes.push(sortedByTime[i].start);
+    }
+  }
+
   return (
     <div className="w-full overflow-x-auto">
       <div className="min-w-[400px]">
@@ -65,7 +74,7 @@ export default function GanttChart({ data, maxTime, height = 280 }: GanttChartPr
                   {bars.map((bar, i) => (
                     <motion.div
                       key={`${pid}-${i}`}
-                      className="absolute top-1 bottom-1 rounded flex items-center justify-center text-xs font-mono font-medium text-black origin-left"
+                      className="absolute top-1 bottom-1 rounded flex items-center justify-center text-xs font-mono font-medium text-black origin-left z-[1]"
                       style={{
                         left: `${bar.start * scale}%`,
                         width: `${Math.max((bar.end - bar.start) * scale, 2)}%`,
@@ -79,6 +88,19 @@ export default function GanttChart({ data, maxTime, height = 280 }: GanttChartPr
                       {bar.end - bar.start}
                     </motion.div>
                   ))}
+                  {/* Context-switch markers on top so they're visible */}
+                  {contextSwitchTimes.length > 0 && maxTime > 0 && (
+                    <div className="absolute inset-0 pointer-events-none z-[2] flex">
+                      {contextSwitchTimes.map((t) => (
+                        <div
+                          key={t}
+                          className="absolute top-0 bottom-0 w-0.5 bg-amber-400/90"
+                          style={{ left: `${(t / maxTime) * 100}%` }}
+                          title={`Context switch at t=${t}`}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               </motion.div>
             );

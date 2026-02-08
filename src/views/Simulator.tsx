@@ -2,11 +2,16 @@
 
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
+import { useSearchParams, usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart } from '@mui/x-charts/BarChart';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import GanttChart from '@/components/GanttChart';
+import Checkbox from '@/components/Checkbox';
 import type { ProcessInput, AlgorithmType, SimulateResponse } from '@/types';
+import { PRESETS } from '@/lib/simulator-presets';
+import { downloadCSV, downloadGanttPNG } from '@/lib/export-utils';
+import { parseSimulatorSearchParams, buildSimulatorSearchParams } from '@/lib/url-state';
 
 const darkTheme = createTheme({
   palette: {
@@ -31,20 +36,66 @@ const ALG_LABELS: Record<AlgorithmType, string> = {
 const inputClass =
   'w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white font-mono text-sm placeholder-neutral-500 focus:ring-2 focus:ring-white/20 focus:border-neutral-500 outline-none transition-all duration-200';
 
+const DEFAULT_PROCESSES: ProcessInput[] = [
+  { pid: 1, arrivalTime: 0, burstTime: 4, priority: 1 },
+  { pid: 2, arrivalTime: 1, burstTime: 3, priority: 2 },
+  { pid: 3, arrivalTime: 2, burstTime: 1, priority: 1 },
+];
+
 export default function Simulator() {
-  const [processes, setProcesses] = useState<ProcessInput[]>([
-    { pid: 1, arrivalTime: 0, burstTime: 4, priority: 1 },
-    { pid: 2, arrivalTime: 1, burstTime: 3, priority: 2 },
-    { pid: 3, arrivalTime: 2, burstTime: 1, priority: 1 },
-  ]);
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+  const [processes, setProcesses] = useState<ProcessInput[]>(DEFAULT_PROCESSES);
   const [algorithm, setAlgorithm] = useState<AlgorithmType | ''>('');
   const [timeQuantum, setTimeQuantum] = useState(2);
   const [result, setResult] = useState<SimulateResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [compareMode, setCompareMode] = useState(false);
+  const [algorithmB, setAlgorithmB] = useState<AlgorithmType | ''>('');
+  const [resultB, setResultB] = useState<SimulateResponse | null>(null);
+  const [stepIndex, setStepIndex] = useState(-1);
+  const [playing, setPlaying] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const ganttRef = useRef<HTMLDivElement>(null);
+  const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hasAppliedUrlRef = useRef(false);
+
+  // Apply URL state on mount (client-only)
+  useEffect(() => {
+    if (hasAppliedUrlRef.current) return;
+    const state = parseSimulatorSearchParams(searchParams);
+    if (state) {
+      hasAppliedUrlRef.current = true;
+      setProcesses(state.processes);
+      setAlgorithm(state.algorithm!);
+      setTimeQuantum(state.timeQuantum);
+    }
+  }, [searchParams]);
+
+  // Sync state to URL when algorithm, timeQuantum, or processes change
+  useEffect(() => {
+    const query = buildSimulatorSearchParams(algorithm, timeQuantum, processes);
+    const current = searchParams.toString();
+    if (query === current) return;
+    // Don't clear URL on first load when we have URL params but state not yet applied
+    if (current && !query) return;
+    const next = query ? `${pathname}?${query}` : pathname;
+    router.replace(next, { scroll: false });
+  }, [algorithm, timeQuantum, processes, pathname, router, searchParams]);
+
+  const copyShareLink = useCallback(() => {
+    const url = typeof window !== 'undefined' ? window.location.href : '';
+    if (!url) return;
+    navigator.clipboard.writeText(url).then(() => {
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    });
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -125,10 +176,89 @@ export default function Simulator() {
     };
   }, [runSimulation, algorithm]);
 
+  // Run second simulation when in compare mode
+  const runSimulationB = useCallback(async () => {
+    if (!algorithmB || !compareMode) return;
+    setError(null);
+    try {
+      const res = await fetch('/api/simulate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          algorithm: algorithmB,
+          timeQuantum: algorithmB === 'round_robin' ? timeQuantum : undefined,
+          processes,
+        }),
+      });
+      if (!res.ok) throw new Error('Simulation B failed');
+      const data: SimulateResponse = await res.json();
+      setResultB(data);
+    } catch {
+      setResultB(null);
+    }
+  }, [algorithmB, compareMode, timeQuantum, processes]);
+
+  useEffect(() => {
+    if (!compareMode || !algorithmB) {
+      setResultB(null);
+      return;
+    }
+    const t = setTimeout(runSimulationB, 300);
+    return () => clearTimeout(t);
+  }, [compareMode, algorithmB, runSimulationB]);
+
+  // Reset step index when result changes
+  useEffect(() => {
+    if (result) setStepIndex(-1);
+  }, [result?.ganttChart?.length]);
+
+  useEffect(() => {
+    if (!playing || !result?.ganttChart?.length) return;
+    const total = result.ganttChart.length;
+    playIntervalRef.current = setInterval(() => {
+      setStepIndex((i) => {
+        if (i >= total - 1) {
+          if (playIntervalRef.current) clearInterval(playIntervalRef.current);
+          setPlaying(false);
+          return total - 1;
+        }
+        return i + 1;
+      });
+    }, 800);
+    return () => {
+      if (playIntervalRef.current) clearInterval(playIntervalRef.current);
+    };
+  }, [playing, result?.ganttChart?.length]);
+
   const maxTime = useMemo(() => {
     if (!result || result.ganttChart.length === 0) return 1;
     return Math.max(...result.ganttChart.map((e) => e.end), 1);
   }, [result]);
+
+  const stepSlice = useMemo(() => {
+    if (!result?.ganttChart?.length || stepIndex < 0) return [];
+    return result.ganttChart.slice(0, stepIndex + 1);
+  }, [result?.ganttChart, stepIndex]);
+
+  const stepDisplayGantt = stepIndex >= 0 && stepSlice.length > 0 ? stepSlice : result?.ganttChart ?? [];
+  const stepDisplayMaxTime = useMemo(() => {
+    if (stepDisplayGantt.length === 0) return 1;
+    return Math.max(...stepDisplayGantt.map((e) => e.end), 1);
+  }, [stepDisplayGantt]);
+
+  const currentStepEntry = useMemo(() => {
+    if (!result?.ganttChart?.length || stepIndex < 0 || stepIndex >= result.ganttChart.length) return null;
+    return result.ganttChart[stepIndex];
+  }, [result?.ganttChart, stepIndex]);
+
+  const readyQueueAtStep = useMemo(() => {
+    if (!currentStepEntry || !result?.processes) return [];
+    const t = currentStepEntry.start;
+    return result.processes
+      .filter((p) => p.arrivalTime <= t && p.completionTime > t)
+      .map((p) => p.pid)
+      .sort((a, b) => a - b);
+  }, [currentStepEntry, result?.processes]);
 
   const chartData = useMemo(() => {
     if (!result) return [];
@@ -138,6 +268,15 @@ export default function Simulator() {
       turnaround: p.turnaroundTime,
     }));
   }, [result]);
+
+  const { cpuUtilizationPercent, totalBusyTime } = useMemo(() => {
+    if (!result?.ganttChart?.length || maxTime <= 0) return { cpuUtilizationPercent: 0, totalBusyTime: 0 };
+    const busy = result.ganttChart.reduce((sum, e) => sum + (e.end - e.start), 0);
+    return {
+      totalBusyTime: busy,
+      cpuUtilizationPercent: Math.round((busy / maxTime) * 100),
+    };
+  }, [result?.ganttChart, maxTime]);
 
   const switched = result && result.chosenAlgorithm !== result.usedAlgorithm;
 
@@ -155,6 +294,28 @@ export default function Simulator() {
           <span className="font-display font-semibold text-white text-lg hidden sm:block">CPU Scheduler</span>
         </Link>
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={copyShareLink}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-white/20 text-white/80 font-mono text-xs hover:bg-white/10 hover:text-white transition-all"
+            title="Copy shareable link"
+          >
+            {shareCopied ? (
+              <>
+                <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Copied
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+                Share link
+              </>
+            )}
+          </button>
           {loading && (
             <span className="text-white/50 text-sm font-mono">Simulating...</span>
           )}
@@ -303,6 +464,59 @@ export default function Simulator() {
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* Compare mode & Algorithm B - boxed so it stands out */}
+            <div className="mt-4 p-4 rounded-xl bg-white/[0.04] border border-white/10 flex flex-wrap items-center gap-4">
+              <Checkbox
+                checked={compareMode}
+                onChange={(checked) => {
+                  setCompareMode(checked);
+                  if (!checked) setAlgorithmB('');
+                }}
+                label="Compare two algorithms"
+              />
+              {compareMode && (
+                <div className="relative">
+                  <select
+                    value={algorithmB}
+                    onChange={(e) => setAlgorithmB((e.target.value || '') as AlgorithmType | '')}
+                    className="w-full min-w-[180px] pl-4 pr-10 py-2.5 rounded-lg bg-neutral-800/90 border border-white/15 text-white font-mono text-sm placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-white/30 transition-all appearance-none cursor-pointer"
+                  >
+                    <option value="">Select second algorithm...</option>
+                    {ALGORITHMS.filter((a) => a.value !== algorithm).map((a) => (
+                      <option key={a.value} value={a.value}>{a.shortLabel} – {a.label}</option>
+                    ))}
+                  </select>
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-white/50" aria-hidden>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </span>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Presets */}
+          <section className="mb-6">
+            <span className="font-mono text-[11px] tracking-[0.2em] text-white/50 uppercase block mb-2">
+              Quick load
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {PRESETS.map((preset) => (
+                <motion.button
+                  key={preset.name}
+                  type="button"
+                  onClick={() => setProcesses(preset.getProcesses())}
+                  className="px-3 py-2 rounded-lg border border-white/15 bg-white/5 text-white/80 font-mono text-xs hover:bg-white/10 hover:border-white/25 transition-all"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  title={preset.description}
+                >
+                  {preset.name}
+                </motion.button>
+              ))}
+            </div>
           </section>
 
           {/* Processes */}
@@ -407,12 +621,153 @@ export default function Simulator() {
             </h2>
           </div>
 
-          {result ? (
+          {compareMode && result && resultB ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="space-y-8"
+            >
+              {/* Compare header */}
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="font-mono text-[10px] text-white/40 uppercase tracking-wider">Comparing</span>
+                <span className="px-4 py-2 rounded-lg bg-white/10 border border-white/20 font-display font-semibold text-white">
+                  {ALG_LABELS[result.usedAlgorithm]}
+                </span>
+                <span className="text-white/40 font-mono">vs</span>
+                <span className="px-4 py-2 rounded-lg bg-white/10 border border-white/20 font-display font-semibold text-white">
+                  {ALG_LABELS[resultB.usedAlgorithm]}
+                </span>
+              </div>
+
+              {/* Metrics comparison table */}
+              <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-white/10">
+                      <th className="text-left py-4 px-4 font-mono text-[10px] text-white/40 uppercase tracking-wider w-1/3">Metric</th>
+                      <th className="text-center py-4 px-4 font-mono text-[10px] text-white/40 uppercase tracking-wider">{ALG_LABELS[result.usedAlgorithm]}</th>
+                      <th className="text-center py-4 px-4 font-mono text-[10px] text-white/40 uppercase tracking-wider">{ALG_LABELS[resultB.usedAlgorithm]}</th>
+                      <th className="text-center py-4 px-4 font-mono text-[10px] text-white/40 uppercase tracking-wider w-24">Better</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {[
+                      { key: 'avgWaitingTime' as const, label: 'Avg waiting time', lowerIsBetter: true },
+                      { key: 'avgTurnaroundTime' as const, label: 'Avg turnaround time', lowerIsBetter: true },
+                      { key: 'avgResponseTime' as const, label: 'Avg response time', lowerIsBetter: true },
+                      { key: 'contextSwitches' as const, label: 'Context switches', lowerIsBetter: true },
+                      { key: 'throughput' as const, label: 'Throughput', lowerIsBetter: false },
+                    ].map(({ key, label, lowerIsBetter }) => {
+                      const a = result.metrics[key];
+                      const b = resultB.metrics[key];
+                      const aVal = typeof a === 'number' ? a.toFixed(2) : String(a);
+                      const bVal = typeof b === 'number' ? b.toFixed(2) : String(b);
+                      const aWins = typeof a === 'number' && typeof b === 'number' && (lowerIsBetter ? a < b : a > b);
+                      const bWins = typeof a === 'number' && typeof b === 'number' && (lowerIsBetter ? b < a : b > a);
+                      return (
+                        <tr key={key} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="py-3 px-4 font-mono text-sm text-white/70">{label}</td>
+                          <td className={`py-3 px-4 text-center font-mono text-sm ${aWins ? 'text-green-400 font-semibold' : 'text-white/90'}`}>{aVal}</td>
+                          <td className={`py-3 px-4 text-center font-mono text-sm ${bWins ? 'text-green-400 font-semibold' : 'text-white/90'}`}>{bVal}</td>
+                          <td className="py-3 px-4 text-center">
+                            {aWins && <span className="text-green-400 text-xs font-mono">{ALG_LABELS[result.usedAlgorithm]}</span>}
+                            {bWins && <span className="text-green-400 text-xs font-mono">{ALG_LABELS[resultB.usedAlgorithm]}</span>}
+                            {!aWins && !bWins && <span className="text-white/40 text-xs">—</span>}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Gantt charts stacked */}
+              <div className="space-y-6">
+                <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 sm:p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="font-mono text-[10px] text-white/40 uppercase tracking-widest">Gantt chart</span>
+                    <span className="px-2.5 py-1 rounded-md bg-white/10 font-display font-semibold text-white text-sm">
+                      {ALG_LABELS[result.usedAlgorithm]}
+                    </span>
+                  </div>
+                  <GanttChart data={result.ganttChart} maxTime={maxTime} height={160} />
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 sm:p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="font-mono text-[10px] text-white/40 uppercase tracking-widest">Gantt chart</span>
+                    <span className="px-2.5 py-1 rounded-md bg-white/10 font-display font-semibold text-white text-sm">
+                      {ALG_LABELS[resultB.usedAlgorithm]}
+                    </span>
+                  </div>
+                  <GanttChart data={resultB.ganttChart} maxTime={Math.max(...resultB.ganttChart.map((e) => e.end), 1)} height={160} />
+                </div>
+              </div>
+            </motion.div>
+          ) : result ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.3 }}
             >
+              {/* Step controls & Export */}
+              <div className="p-4 rounded-xl bg-white/[0.04] border border-white/10 flex flex-wrap items-center gap-4 mb-6">
+                {/* <span className="font-mono text-[10px] text-white/50 uppercase tracking-wider mr-2">Step through</span> */}
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => { setPlaying(false); setStepIndex((i) => Math.max(-1, i - 1)); }}
+                    className="p-2 rounded-lg border border-white/20 text-white/80 hover:bg-white/10 font-mono text-xs"
+                    title="Previous step"
+                  >←</button>
+                  <button
+                    type="button"
+                    onClick={() => setPlaying((p) => !p)}
+                    disabled={!result.ganttChart.length}
+                    className="p-2 rounded-lg border border-white/20 text-white/80 hover:bg-white/10 font-mono text-xs disabled:opacity-50"
+                    title={playing ? 'Pause' : 'Play'}
+                  >{playing ? '⏸' : '▶'}</button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPlaying(false);
+                      setStepIndex((i) =>
+                        i >= (result.ganttChart?.length ?? 0) - 1 ? i : i + 1
+                      );
+                    }}
+                    disabled={stepIndex >= (result.ganttChart?.length ?? 0) - 1}
+                    className="p-2 rounded-lg border border-white/20 text-white/80 hover:bg-white/10 font-mono text-xs disabled:opacity-50"
+                    title="Next step"
+                  >→</button>
+                  <button
+                    type="button"
+                    onClick={() => { setPlaying(false); setStepIndex(-1); }}
+                    className="p-2 rounded-lg border border-white/20 text-white/80 hover:bg-white/10 font-mono text-xs"
+                    title="Show all"
+                  >↺</button>
+                </div>
+                <span className="font-mono text-white/50 text-xs">
+                  Step {stepIndex < 0 ? 'all' : `${stepIndex + 1} / ${result.ganttChart?.length ?? 0}`}
+                </span>
+                {currentStepEntry && (
+                  <span className="text-white/60 text-xs">
+                    Current: P{currentStepEntry.pid} (t={currentStepEntry.start}–{currentStepEntry.end})
+                    {readyQueueAtStep.length > 0 && ` · Ready: P${readyQueueAtStep.join(', P')}`}
+                  </span>
+                )}
+                <div className="ml-auto flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => result && downloadCSV(result)}
+                    className="px-3 py-1.5 rounded-lg border border-white/20 text-white/80 font-mono text-xs hover:bg-white/10"
+                  >Export CSV</button>
+                  <button
+                    type="button"
+                    onClick={() => ganttRef.current && downloadGanttPNG(ganttRef.current)}
+                    className="px-3 py-1.5 rounded-lg border border-white/20 text-white/80 font-mono text-xs hover:bg-white/10"
+                  >Export PNG</button>
+                </div>
+              </div>
+
               {/* Algorithm Switch Notice */}
               {switched && (
                 <motion.div
@@ -427,6 +782,26 @@ export default function Simulator() {
                   </p>
                 </motion.div>
               )}
+
+              {/* Throughput & CPU utilization summary */}
+              <div className="mb-6 px-4 py-3 rounded-xl bg-white/[0.03] border border-white/10 flex flex-wrap items-center gap-6">
+                <div className="flex items-baseline gap-2">
+                  <span className="font-mono text-[10px] text-white/50 uppercase tracking-wider">Throughput</span>
+                  <span className="font-display font-semibold text-white">
+                    {result.metrics.throughput.toFixed(2)}
+                    <span className="font-mono text-white/50 text-sm font-normal ml-1">processes/unit time</span>
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="font-mono text-[10px] text-white/50 uppercase tracking-wider">CPU utilization</span>
+                  <span className="font-display font-semibold text-white">
+                    {cpuUtilizationPercent}%
+                    <span className="font-mono text-white/50 text-sm font-normal ml-1">
+                      ({totalBusyTime.toFixed(0)} / {maxTime.toFixed(0)} time units)
+                    </span>
+                  </span>
+                </div>
+              </div>
 
               {/* Metrics */}
               <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 mb-8">
@@ -455,15 +830,22 @@ export default function Simulator() {
 
               {/* Gantt Chart */}
               <motion.section
+                ref={ganttRef}
                 className="rounded-xl border border-white/10 bg-white/[0.02] p-4 sm:p-5 mb-6"
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                <span className="font-mono text-[10px] text-white/40 tracking-widest uppercase block mb-4">
+                <div className="flex items-center justify-between gap-4 mb-4">
+                <span className="font-mono text-[10px] text-white/40 tracking-widest uppercase">
                   Gantt Chart
                 </span>
-                <GanttChart data={result.ganttChart} maxTime={maxTime} height={180} />
+                <span className="flex items-center gap-2 font-mono text-[10px] text-white/40">
+                  <span className="w-3 h-3 rounded-sm bg-amber-400/80" aria-hidden />
+                  Context-switch boundaries
+                </span>
+              </div>
+              <GanttChart data={stepDisplayGantt} maxTime={stepDisplayMaxTime} height={180} />
               </motion.section>
 
               {/* Bar Chart */}

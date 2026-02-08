@@ -1,11 +1,11 @@
 # CPU Scheduling Visualizer
 
-A modern, interactive web application for visualizing and understanding CPU scheduling algorithms. Built with React, TypeScript, and Express, this simulator helps students and developers explore how operating systems manage process scheduling.
+A modern, interactive web application for visualizing and understanding CPU scheduling algorithms. Built with **Next.js**, **React**, and **TypeScript**, this simulator helps students and developers explore how operating systems manage process scheduling. Deploy-ready for **Vercel**.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)
+![Next.js](https://img.shields.io/badge/Next.js-14-000000.svg)
 ![React](https://img.shields.io/badge/React-18.2-61DAFB.svg)
-![Node.js](https://img.shields.io/badge/Node.js-Express-339933.svg)
 
 ---
 
@@ -15,11 +15,11 @@ A modern, interactive web application for visualizing and understanding CPU sche
 - [Features](#features)
 - [Supported Algorithms](#supported-algorithms)
 - [Tech Stack](#tech-stack)
-- [Architecture](#architecture)
 - [Getting Started](#getting-started)
 - [Usage](#usage)
 - [API Documentation](#api-documentation)
 - [Project Structure](#project-structure)
+- [Deployment (Vercel)](#deployment-vercel)
 - [How It Works](#how-it-works)
 - [Contributing](#contributing)
 - [License](#license)
@@ -49,8 +49,8 @@ Whether you're a student learning OS concepts or a developer building scheduling
 | **Multiple Algorithms** | FCFS, SJF (Preemptive), Round Robin, Priority Scheduling |
 | **Interactive Gantt Chart** | Animated visualization of process execution timeline |
 | **Performance Metrics** | Average waiting time, turnaround time, throughput, context switches |
-| **Smart Algorithm Switcher** | AI-powered recommendation system that suggests optimal algorithms |
-| **Modern UI/UX** | Beautiful dark-themed interface with smooth animations |
+| **Smart Algorithm Switcher** | Automatic optimization that suggests better algorithms when needed |
+| **Modern UI/UX** | Dark-themed interface with smooth animations (Framer Motion) |
 | **Responsive Design** | Works seamlessly on desktop and tablet devices |
 
 ### Smart Algorithm Switching
@@ -59,8 +59,6 @@ The simulator includes an intelligent evaluator that can automatically switch al
 
 - **Round Robin** causes excessive context switches → Switches to SJF
 - **FCFS** leads to convoy effect (high waiting times) → Switches to SJF
-
-This teaches users about the trade-offs between different scheduling strategies.
 
 ---
 
@@ -72,24 +70,9 @@ This teaches users about the trade-offs between different scheduling strategies.
 Non-preemptive | Simple | May cause convoy effect
 ```
 
-The simplest scheduling algorithm. Processes are executed in the order they arrive in the ready queue.
+Processes are executed in the order they arrive in the ready queue.
 
-**Characteristics:**
-- Non-preemptive
-- Easy to implement
-- May lead to convoy effect (short processes wait for long ones)
-- Best for batch systems
-
-**Example:**
-```
-Process  Arrival  Burst
-P1       0        4
-P2       1        3
-P3       2        1
-
-Gantt: |--P1--|--P2--|P3|
-       0     4     7    8
-```
+**Characteristics:** Non-preemptive, easy to implement, may lead to convoy effect. Best for batch systems.
 
 ---
 
@@ -99,24 +82,9 @@ Gantt: |--P1--|--P2--|P3|
 Preemptive | Optimal waiting time | Requires burst time prediction
 ```
 
-Also known as Shortest Remaining Time First (SRTF). The process with the smallest remaining burst time is executed. If a new process arrives with a shorter burst, preemption occurs.
+Also known as Shortest Remaining Time First (SRTF). The process with the smallest remaining burst time is executed; preemption occurs when a shorter job arrives.
 
-**Characteristics:**
-- Preemptive
-- Minimizes average waiting time (provably optimal)
-- Requires knowledge of burst times (often predicted)
-- May cause starvation of long processes
-
-**Example:**
-```
-Process  Arrival  Burst
-P1       0        7
-P2       2        4
-P3       4        1
-
-Gantt: |P1|--P2--|P3|--P2--|---P1---|
-       0  2      4   5     7       12
-```
+**Characteristics:** Preemptive, minimizes average waiting time (provably optimal), may cause starvation of long processes.
 
 ---
 
@@ -128,27 +96,7 @@ Preemptive | Time-sliced | Fair | High context switches
 
 Each process gets a fixed time quantum. After the quantum expires, the process is preempted and added to the end of the ready queue.
 
-**Characteristics:**
-- Preemptive with time quantum
-- Fair allocation of CPU time
-- Response time depends on quantum size
-- Higher context switch overhead
-
-**Time Quantum Selection:**
-- Too small → High overhead from context switches
-- Too large → Degenerates to FCFS
-- Optimal → 80% of CPU bursts should complete within one quantum
-
-**Example (Quantum = 2):**
-```
-Process  Arrival  Burst
-P1       0        5
-P2       1        3
-P3       2        1
-
-Gantt: |P1|P2|P1|P3|P2|P1|
-       0  2  4  5  6  7  8
-```
+**Characteristics:** Preemptive with configurable quantum, fair allocation, higher context switch overhead.
 
 ---
 
@@ -158,91 +106,24 @@ Gantt: |P1|P2|P1|P3|P2|P1|
 Non-preemptive | Priority-based | May cause starvation
 ```
 
-Each process is assigned a priority. The CPU is allocated to the process with the highest priority (lowest number = highest priority in this implementation).
+The CPU is allocated to the process with the highest priority (lower number = higher priority in this implementation).
 
-**Characteristics:**
-- Can be preemptive or non-preemptive (our implementation is non-preemptive)
-- Flexible priority assignment
-- May cause starvation (solved with aging)
-- Used in real-time systems
-
-**Example:**
-```
-Process  Arrival  Burst  Priority
-P1       0        4      2
-P2       1        3      1  (highest)
-P3       2        1      3
-
-Gantt: |--P1--|--P2--|P3|
-       0     4     7    8
-```
+**Characteristics:** Non-preemptive in this implementation, flexible prioritization, used in real-time systems.
 
 ---
 
 ## Tech Stack
 
-### Frontend
-
 | Technology | Purpose |
 |------------|---------|
-| **React 18** | UI library with hooks and concurrent features |
+| **Next.js 14** | React framework with App Router, API routes, and serverless deployment |
+| **React 18** | UI library with hooks |
 | **TypeScript** | Type-safe JavaScript |
-| **Vite** | Fast build tool and dev server |
-| **Tailwind CSS** | Utility-first CSS framework |
-| **Framer Motion** | Animation library for smooth transitions |
-| **GSAP** | Advanced animations |
-| **MUI X Charts** | Modern charting library |
-| **React Router** | Client-side routing |
+| **Tailwind CSS** | Utility-first CSS |
+| **Framer Motion** | Animations and transitions |
+| **MUI X Charts** | Bar charts and data visualization |
 
-### Backend
-
-| Technology | Purpose |
-|------------|---------|
-| **Node.js** | JavaScript runtime |
-| **Express** | Web framework |
-| **TypeScript** | Type-safe JavaScript |
-| **ts-node-dev** | Development server with hot reload |
-
----
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                          Frontend                                │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐  │
-│  │   Landing   │  │  Simulator  │  │      Components         │  │
-│  │    Page     │  │    Page     │  │  - GanttChart           │  │
-│  │             │  │             │  │  - ProcessTable         │  │
-│  │  - Hero     │  │  - Inputs   │  │  - MetricsCards         │  │
-│  │  - Features │  │  - Results  │  │  - AlgorithmDropdown    │  │
-│  │  - CTA      │  │  - Charts   │  │  - BarChart             │  │
-│  └─────────────┘  └─────────────┘  └─────────────────────────┘  │
-│                            │                                     │
-│                            │ HTTP POST /api/simulate             │
-│                            ▼                                     │
-├─────────────────────────────────────────────────────────────────┤
-│                          Backend                                 │
-│  ┌─────────────────────────────────────────────────────────────┐│
-│  │                      Express Server                          ││
-│  │  ┌─────────────┐  ┌──────────────┐  ┌────────────────────┐  ││
-│  │  │   Routes    │  │  Algorithms  │  │     Evaluator      │  ││
-│  │  │             │  │              │  │                    │  ││
-│  │  │ /simulate   │──▶│  - FCFS     │  │  - Smart Switcher  │  ││
-│  │  │             │  │  - SJF       │──▶│  - Optimization    │  ││
-│  │  │             │  │  - RR        │  │  - Recommendations │  ││
-│  │  │             │  │  - Priority  │  │                    │  ││
-│  │  └─────────────┘  └──────────────┘  └────────────────────┘  ││
-│  │                            │                                 ││
-│  │                            ▼                                 ││
-│  │  ┌─────────────────────────────────────────────────────────┐││
-│  │  │                    Metrics Engine                        │││
-│  │  │  - Waiting Time  - Turnaround Time  - Context Switches  │││
-│  │  │  - Completion Time  - Throughput                        │││
-│  │  └─────────────────────────────────────────────────────────┘││
-│  └─────────────────────────────────────────────────────────────┘│
-└─────────────────────────────────────────────────────────────────┘
-```
+The app is a **single Next.js project**: the UI and the simulation API (`POST /api/simulate`) live in one codebase, so you can deploy it as one service (e.g. on Vercel) with no separate backend server.
 
 ---
 
@@ -261,46 +142,25 @@ Gantt: |--P1--|--P2--|P3|
    cd CPU-Scheduling-Visualizer
    ```
 
-2. **Install backend dependencies**
+2. **Install dependencies**
    ```bash
-   cd backend
-   npm install
-   ```
-
-3. **Install frontend dependencies**
-   ```bash
-   cd ../frontend
    npm install
    ```
 
 ### Running the Application
 
-1. **Start the backend server** (Terminal 1)
+1. **Start the development server**
    ```bash
-   cd backend
    npm run dev
    ```
-   Server runs on `http://localhost:3001`
 
-2. **Start the frontend dev server** (Terminal 2)
-   ```bash
-   cd frontend
-   npm run dev
-   ```
-   Application runs on `http://localhost:5173`
-
-3. **Open your browser** and navigate to `http://localhost:5173`
+2. **Open your browser** at [http://localhost:3000](http://localhost:3000)
 
 ### Building for Production
 
 ```bash
-# Build frontend
-cd frontend
 npm run build
-
-# Build backend
-cd ../backend
-npm run build
+npm start
 ```
 
 ---
@@ -309,10 +169,10 @@ npm run build
 
 ### Basic Workflow
 
-1. **Navigate to Simulator** - Click "Get Started" on the landing page
-2. **Add Processes** - Configure process ID, arrival time, burst time, and priority
-3. **Select Algorithm** - Choose from FCFS, SJF, Round Robin, or Priority
-4. **View Results** - See real-time Gantt chart, metrics, and per-process data
+1. **Landing page** – Read about the project, then click **Try Simulator** or **Launch Simulator**.
+2. **Simulator** – Add/remove processes (PID, arrival time, burst time, priority when using Priority algorithm).
+3. **Select algorithm** – Choose FCFS, SJF, Round Robin, or Priority (and set time quantum for RR).
+4. **View results** – Gantt chart, metrics, and per-process table update in real time.
 
 ### Process Configuration
 
@@ -325,20 +185,15 @@ npm run build
 
 ### Understanding Results
 
-#### Gantt Chart
-Visual timeline showing which process runs at each time unit. Each bar represents a process execution period.
-
-#### Metrics
-- **Average Waiting Time**: Mean time processes spend in ready queue
-- **Average Turnaround Time**: Mean time from arrival to completion
-- **Context Switches**: Number of times CPU switches between processes
-
-#### Per-Process Table
-Detailed breakdown showing completion time, waiting time, and turnaround time for each process.
+- **Gantt Chart** – Timeline of which process runs at each time unit.
+- **Metrics** – Average waiting time, turnaround time, response time, throughput, context switches.
+- **Per-Process Table** – Completion time, waiting time, and turnaround time for each process.
 
 ---
 
 ## API Documentation
+
+The app exposes one API route used by the simulator.
 
 ### POST /api/simulate
 
@@ -358,13 +213,11 @@ Runs a CPU scheduling simulation with the specified algorithm and processes.
 }
 ```
 
-#### Parameters
-
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `algorithm` | string | Yes | One of: `fcfs`, `sjf`, `round_robin`, `priority` |
 | `timeQuantum` | number | No | Time slice for Round Robin (default: 2) |
-| `processes` | array | Yes | Array of process objects |
+| `processes` | array | Yes | Array of process objects (pid, arrivalTime, burstTime, priority optional) |
 
 #### Response
 
@@ -375,12 +228,12 @@ Runs a CPU scheduling simulation with the specified algorithm and processes.
   "reasonSwitched": "Round Robin caused too many context switches (8). System switched to SJF to reduce turnaround time by 25%.",
   "ganttChart": [
     { "pid": 1, "start": 0, "end": 2 },
-    { "pid": 2, "start": 2, "end": 5 },
-    { "pid": 3, "start": 5, "end": 6 }
+    { "pid": 2, "start": 2, "end": 5 }
   ],
   "metrics": {
     "avgWaitingTime": 2.33,
     "avgTurnaroundTime": 5.0,
+    "avgResponseTime": 1.0,
     "contextSwitches": 2,
     "throughput": 0.5
   },
@@ -404,100 +257,63 @@ Runs a CPU scheduling simulation with the specified algorithm and processes.
 
 ```
 CPU-Scheduling-Visualizer/
-├── backend/
-│   ├── src/
-│   │   ├── algorithms/
-│   │   │   ├── fcfs.ts          # First Come First Serve
-│   │   │   ├── sjf.ts           # Shortest Job First (Preemptive)
-│   │   │   ├── rr.ts            # Round Robin
-│   │   │   └── priority.ts      # Priority Scheduling
-│   │   ├── evaluator/
-│   │   │   └── switcher.ts      # Smart algorithm switcher
-│   │   ├── metrics.ts           # Performance metrics calculator
-│   │   ├── routes.ts            # API routes
-│   │   ├── server.ts            # Express server setup
-│   │   ├── types.ts             # TypeScript interfaces
-│   │   └── logger.ts            # Logging utility
-│   ├── package.json
-│   └── tsconfig.json
-│
-├── frontend/
-│   ├── public/
-│   │   └── favicon.svg          # App icon
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── GanttChart.tsx   # Gantt chart visualization
-│   │   │   ├── LocomotiveScroll.tsx
-│   │   │   └── landing/         # Landing page components
-│   │   │       ├── AnimatedText.tsx
-│   │   │       ├── CPUVisual.tsx
-│   │   │       ├── FloatingShapes.tsx
-│   │   │       ├── GlowButton.tsx
-│   │   │       └── ...
-│   │   ├── pages/
-│   │   │   ├── Landing.tsx      # Landing page
-│   │   │   ├── Simulator.tsx    # Main simulator page
-│   │   │   ├── InputPage.tsx    # Legacy input page
-│   │   │   └── Results.tsx      # Legacy results page
-│   │   ├── App.tsx              # Root component with routing
-│   │   ├── main.tsx             # Entry point
-│   │   ├── index.css            # Global styles
-│   │   └── types.ts             # Shared TypeScript types
-│   ├── index.html
-│   ├── package.json
-│   ├── tailwind.config.js
-│   ├── vite.config.ts
-│   └── tsconfig.json
-│
+├── public/
+│   └── favicon.svg
+├── src/
+│   ├── app/
+│   │   ├── api/
+│   │   │   └── simulate/
+│   │   │       └── route.ts      # POST /api/simulate
+│   │   ├── globals.css
+│   │   ├── layout.tsx            # Root layout
+│   │   ├── page.tsx              # Landing page (/)
+│   │   └── simulator/
+│   │       └── page.tsx          # Simulator page (/simulator)
+│   ├── components/
+│   │   ├── GanttChart.tsx
+│   │   ├── LocomotiveScroll.tsx
+│   │   └── landing/              # Landing page components
+│   │   └── technologies/        # Tech stack icons
+│   ├── lib/
+│   │   └── cpu-scheduler/       # Simulation engine
+│   │       ├── algorithms/
+│   │       │   ├── fcfs.ts
+│   │       │   ├── sjf.ts
+│   │       │   ├── rr.ts
+│   │       │   └── priority.ts
+│   │       ├── evaluator/
+│   │       │   └── switcher.ts   # Smart algorithm switcher
+│   │       ├── metrics.ts
+│   │       └── types.ts
+│   ├── views/
+│   │   ├── Landing.tsx
+│   │   ├── Simulator.tsx
+│   │   ├── InputPage.tsx
+│   │   └── Results.tsx
+│   ├── index.css
+│   └── types.ts
+├── next.config.mjs
+├── package.json
+├── tailwind.config.js
+├── tsconfig.json
 └── README.md
 ```
 
 ---
 
-## How It Works
+## Deployment (Vercel)
 
-### Metrics Calculation
-
-#### Waiting Time
-```
-Waiting Time = Turnaround Time - Burst Time
-```
-Time a process spends waiting in the ready queue.
-
-#### Turnaround Time
-```
-Turnaround Time = Completion Time - Arrival Time
-```
-Total time from process arrival to completion.
-
-#### Context Switches
-Number of times the CPU switches from one process to another. Higher context switches mean more overhead.
-
-#### Throughput
-```
-Throughput = Number of Processes / Total Time
-```
-Number of processes completed per unit time.
-
-### Smart Switching Logic
-
-The evaluator uses heuristics to detect suboptimal scheduling:
-
-```typescript
-// Too many context switches in Round Robin
-if (contextSwitches > processes.length * 2.5) {
-  // Switch to SJF for better efficiency
-}
-
-// Convoy effect in FCFS
-if (avgWaitingTime > sjfWaitingTime * 2) {
-  // Switch to SJF for lower waiting times
-}
-```
+1. Push the repo to GitHub (or connect your Git provider in Vercel).
+2. In [Vercel](https://vercel.com), **Import** the repository.
+3. Leave **Root Directory** as the repo root (or blank).
+4. Build command: `npm run build` (default).
+5. Deploy. The app and `POST /api/simulate` will run as serverless functions; no separate backend is required.
 
 ---
 
-## Key Formulas
+## How It Works
+
+### Metrics
 
 | Metric | Formula |
 |--------|---------|
@@ -505,28 +321,18 @@ if (avgWaitingTime > sjfWaitingTime * 2) {
 | Turnaround Time (TAT) | CT - Arrival Time |
 | Waiting Time (WT) | TAT - Burst Time |
 | Average Waiting Time | Σ(WT) / n |
-| Average Turnaround Time | Σ(TAT) / n |
 | Throughput | n / max(CT) |
 
----
+### Smart Switching Logic
 
-## Future Enhancements
+The evaluator in `src/lib/cpu-scheduler/evaluator/switcher.ts` uses heuristics:
 
-- [ ] **Multilevel Queue Scheduling**
-- [ ] **Multilevel Feedback Queue**
-- [ ] **Priority Aging** to prevent starvation
-- [ ] **Preemptive Priority Scheduling**
-- [ ] **Challenge Mode** with gamification
-- [ ] **Algorithm Comparison** side-by-side view
-- [ ] **Export Results** as PDF/Image
-- [ ] **Process Generator** for random test cases
-- [ ] **Dark/Light Theme** toggle
+- **Round Robin** → If context switches exceed `processes.length × 2.5`, switch to SJF.
+- **FCFS** → If FCFS average waiting time is at least 2× SJF’s, switch to SJF.
 
 ---
 
 ## Contributing
-
-Contributions are welcome! Please follow these steps:
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -534,26 +340,13 @@ Contributions are welcome! Please follow these steps:
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-### Code Style
-
-- Use TypeScript for type safety
-- Follow ESLint configuration
-- Write meaningful commit messages
-- Add comments for complex logic
+Use TypeScript, follow the existing code style, and add comments for non-obvious logic.
 
 ---
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## Acknowledgments
-
-- Operating System concepts from Silberschatz, Galvin, and Gagne
-- UI inspiration from modern design systems
-- Open source community for amazing tools and libraries
 
 ---
 
