@@ -4,6 +4,8 @@ import { runSJF } from '../algorithms/sjf';
 import { runRoundRobin } from '../algorithms/rr';
 import { runPriority } from '../algorithms/priority';
 import { runPriorityPreemptive } from '../algorithms/priorityPreemptive';
+import { runMLQ } from '../algorithms/mlq';
+import { runMLFQ } from '../algorithms/mlfq';
 
 const MAX_CONTEXT_SWITCHES_PER_PROCESS = 2.5;
 const MAX_AVG_WAITING_TIME_RATIO = 2.0;
@@ -24,6 +26,10 @@ function runAlgorithm(
       return runPriority(processes);
     case 'priority_preemptive':
       return runPriorityPreemptive(processes);
+    case 'mlq':
+      return runMLQ(processes, timeQuantum ?? 2);
+    case 'mlfq':
+      return runMLFQ(processes, timeQuantum ?? 2);
     default:
       return runFCFS(processes);
   }

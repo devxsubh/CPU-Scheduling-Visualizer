@@ -1,5 +1,12 @@
 // CPU scheduling types (aligned with backend)
-export type AlgorithmType = 'fcfs' | 'sjf' | 'round_robin' | 'priority' | 'priority_preemptive';
+export type AlgorithmType =
+  | 'fcfs'
+  | 'sjf'
+  | 'round_robin'
+  | 'priority'
+  | 'priority_preemptive'
+  | 'mlq'
+  | 'mlfq';
 
 export interface ProcessInput {
   pid: number;

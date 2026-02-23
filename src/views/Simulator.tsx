@@ -25,6 +25,8 @@ const ALGORITHMS: { value: AlgorithmType; label: string; shortLabel: string; des
   { value: 'round_robin', label: 'Round Robin', shortLabel: 'RR', description: 'Time-sliced execution with quantum' },
   { value: 'priority', label: 'Priority (Non‑preemptive)', shortLabel: 'PRI', description: 'Higher priority first, no preemption' },
   { value: 'priority_preemptive', label: 'Priority (Preemptive)', shortLabel: 'PRI+', description: 'Higher priority first, preempt on arrival' },
+  { value: 'mlq', label: 'Multilevel Queue (MLQ)', shortLabel: 'MLQ', description: 'Queues by priority level, RR within each queue' },
+  { value: 'mlfq', label: 'Multilevel Feedback Queue (MLFQ)', shortLabel: 'MLFQ', description: 'Start in top queue; demote after full quantum' },
 ];
 
 const ALG_LABELS: Record<AlgorithmType, string> = {
@@ -33,6 +35,8 @@ const ALG_LABELS: Record<AlgorithmType, string> = {
   round_robin: 'Round Robin',
   priority: 'Priority',
   priority_preemptive: 'Priority (Preemptive)',
+  mlq: 'Multilevel Queue',
+  mlfq: 'Multilevel Feedback Queue',
 };
 
 const inputClass =
@@ -153,7 +157,10 @@ export default function Simulator() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           algorithm,
-          timeQuantum: algorithm === 'round_robin' ? timeQuantum : undefined,
+          timeQuantum:
+            algorithm === 'round_robin' || algorithm === 'mlq' || algorithm === 'mlfq'
+              ? timeQuantum
+              : undefined,
           processes,
         }),
       });
@@ -201,7 +208,10 @@ export default function Simulator() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           algorithm: algorithmB,
-          timeQuantum: algorithmB === 'round_robin' ? timeQuantum : undefined,
+          timeQuantum:
+            algorithmB === 'round_robin' || algorithmB === 'mlq' || algorithmB === 'mlfq'
+              ? timeQuantum
+              : undefined,
           processes,
         }),
       });
@@ -528,9 +538,9 @@ export default function Simulator() {
               </AnimatePresence>
             </div>
 
-            {/* Time Quantum for Round Robin */}
+            {/* Time Quantum for Round Robin / MLQ / MLFQ */}
             <AnimatePresence mode="wait">
-              {algorithm === 'round_robin' && (
+              {(algorithm === 'round_robin' || algorithm === 'mlq' || algorithm === 'mlfq') && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
@@ -681,13 +691,13 @@ export default function Simulator() {
             <div className="rounded-xl bg-neutral-900/50 border border-white/10 overflow-hidden">
               <div
                 className={`grid gap-2 px-4 py-3 border-b border-white/10 font-mono text-[10px] tracking-wider text-white/40 uppercase ${
-                  (algorithm === 'priority' || algorithm === 'priority_preemptive') ? 'grid-cols-[40px_1fr_1fr_1fr_40px]' : 'grid-cols-[40px_1fr_1fr_40px]'
+                  (algorithm === 'priority' || algorithm === 'priority_preemptive' || algorithm === 'mlq') ? 'grid-cols-[40px_1fr_1fr_1fr_40px]' : 'grid-cols-[40px_1fr_1fr_40px]'
                 }`}
               >
                 <div>PID</div>
                 <div>Arrival</div>
                 <div>Burst</div>
-                {(algorithm === 'priority' || algorithm === 'priority_preemptive') && <div>Priority</div>}
+                {(algorithm === 'priority' || algorithm === 'priority_preemptive' || algorithm === 'mlq') && <div>Priority / Queue</div>}
                 <div></div>
               </div>
               <AnimatePresence mode="popLayout">
@@ -700,7 +710,7 @@ export default function Simulator() {
                     exit={{ opacity: 0, height: 0 }}
                     transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                     className={`grid gap-2 px-4 py-3 items-center border-b border-white/5 last:border-0 ${
-                      (algorithm === 'priority' || algorithm === 'priority_preemptive') ? 'grid-cols-[40px_1fr_1fr_1fr_40px]' : 'grid-cols-[40px_1fr_1fr_40px]'
+                      (algorithm === 'priority' || algorithm === 'priority_preemptive' || algorithm === 'mlq') ? 'grid-cols-[40px_1fr_1fr_1fr_40px]' : 'grid-cols-[40px_1fr_1fr_40px]'
                     }`}
                   >
                     <span className="font-mono text-sm text-white/70">P{p.pid}</span>
@@ -718,13 +728,14 @@ export default function Simulator() {
                       onChange={(e) => updateProcess(p.pid, 'burstTime', Math.max(1, Number(e.target.value) || 1))}
                       className={inputClass}
                     />
-                    {(algorithm === 'priority' || algorithm === 'priority_preemptive') && (
+                    {(algorithm === 'priority' || algorithm === 'priority_preemptive' || algorithm === 'mlq') && (
                       <input
                         type="number"
                         min={0}
                         value={p.priority ?? 0}
                         onChange={(e) => updateProcess(p.pid, 'priority', Number(e.target.value) || 0)}
                         className={inputClass}
+                        title={algorithm === 'mlq' ? 'Queue level (0 = highest)' : 'Priority'}
                       />
                     )}
                     <button

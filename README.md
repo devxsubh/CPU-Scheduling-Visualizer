@@ -45,12 +45,17 @@ Whether you're a student learning OS concepts or a developer building scheduling
 
 | Feature | Description |
 |---------|-------------|
-| **Real-time Simulation** | See results update instantly as you modify inputs |
-| **Multiple Algorithms** | FCFS, SJF (Preemptive), Round Robin, Priority Scheduling |
-| **Interactive Gantt Chart** | Animated visualization of process execution timeline |
-| **Performance Metrics** | Average waiting time, turnaround time, throughput, context switches |
-| **Smart Algorithm Switcher** | Automatic optimization that suggests better algorithms when needed |
-| **Modern UI/UX** | Dark-themed interface with smooth animations (Framer Motion) |
+| **Real-time Simulation** | See results update instantly as you modify inputs (debounced) |
+| **Seven Algorithms** | FCFS, SJF, Round Robin, Priority (Non‑/Preemptive), **Multilevel Queue (MLQ)**, **Multilevel Feedback Queue (MLFQ)** |
+| **Interactive Gantt Chart** | Animated visualization with context-switch boundaries |
+| **Step-by-Step Playback** | Play, pause, prev/next through Gantt steps with ready-queue and explanation |
+| **Compare Two Algorithms** | Side-by-side metrics table and Gantt charts for any two algorithms |
+| **Performance Metrics** | Avg waiting/turnaround/response time, throughput, context switches, CPU utilization |
+| **Smart Algorithm Switcher** | Automatic optimization that switches to a better algorithm when needed |
+| **Share Link** | Copy URL with current config (algorithm, quantum, processes) to share or bookmark |
+| **Export** | Download results as CSV, JSON, or Gantt chart as PNG |
+| **Quick-Load Presets** | One-click presets: Random (5), Convoy effect, RR heavy, SJF friendly, Priority demo |
+| **Modern UI/UX** | Dark-themed simulator with smooth animations (Framer Motion) |
 | **Responsive Design** | Works seamlessly on desktop and tablet devices |
 
 ### Smart Algorithm Switching
@@ -100,15 +105,51 @@ Each process gets a fixed time quantum. After the quantum expires, the process i
 
 ---
 
-### 4. Priority Scheduling
+### 4. Priority Scheduling (Non‑preemptive)
 
 ```
 Non-preemptive | Priority-based | May cause starvation
 ```
 
-The CPU is allocated to the process with the highest priority (lower number = higher priority in this implementation).
+The CPU is allocated to the process with the highest priority (lower number = higher priority in this implementation). Once a process starts, it runs to completion.
 
-**Characteristics:** Non-preemptive in this implementation, flexible prioritization, used in real-time systems.
+**Characteristics:** Non-preemptive, flexible prioritization, used in real-time systems.
+
+---
+
+### 5. Priority Scheduling (Preemptive)
+
+```
+Preemptive | Priority-based | Preempt on higher-priority arrival
+```
+
+Same priority rule (lower number = higher priority), but when a higher-priority process arrives, the currently running process is preempted and the new process runs.
+
+**Characteristics:** Preemptive, better responsiveness for high-priority jobs, may increase context switches.
+
+---
+
+### 6. Multilevel Queue (MLQ)
+
+```
+Real-world | Queue per priority level | RR within each queue
+```
+
+Processes are permanently assigned to a queue by **priority** (here, the Priority field is the **queue level**: 0 = highest, 1 = next, etc.). The scheduler always runs the highest-priority non-empty queue; within each queue, processes are scheduled with **Round Robin** and a configurable time quantum.
+
+**Characteristics:** Used in real OSs to separate system, interactive, and batch jobs. No process moves between queues.
+
+---
+
+### 7. Multilevel Feedback Queue (MLFQ)
+
+```
+Real-world | Adaptive | Demote after full quantum
+```
+
+All processes **start in the top queue**. Each queue runs Round Robin. If a process uses its **full time quantum** and still has burst left, it is **demoted** to the next lower queue. Short jobs finish quickly in the top queue(s); long jobs eventually sink to lower queues. Configurable time quantum and number of levels (default 3).
+
+**Characteristics:** No prior knowledge of burst length needed; balances response time and throughput. Used in many modern schedulers.
 
 ---
 
@@ -121,7 +162,9 @@ The CPU is allocated to the process with the highest priority (lower number = hi
 | **TypeScript** | Type-safe JavaScript |
 | **Tailwind CSS** | Utility-first CSS |
 | **Framer Motion** | Animations and transitions |
-| **MUI X Charts** | Bar charts and data visualization |
+| **GSAP** | Landing page scroll and sequence animations |
+| **MUI X Charts** | Bar charts for per-process waiting/turnaround |
+| **html-to-image** | Export Gantt chart as PNG |
 
 The app is a **single Next.js project**: the UI and the simulation API (`POST /api/simulate`) live in one codebase, so you can deploy it as one service (e.g. on Vercel) with no separate backend server.
 
@@ -170,9 +213,10 @@ npm start
 ### Basic Workflow
 
 1. **Landing page** – Read about the project, then click **Try Simulator** or **Launch Simulator**.
-2. **Simulator** – Add/remove processes (PID, arrival time, burst time, priority when using Priority algorithm).
-3. **Select algorithm** – Choose FCFS, SJF, Round Robin, or Priority (and set time quantum for RR).
-4. **View results** – Gantt chart, metrics, and per-process table update in real time.
+2. **Simulator** – Add/remove processes (PID, arrival time, burst time, priority for Priority algorithms). Use **Quick load** presets to try predefined workloads.
+3. **Select algorithm** – Choose FCFS, SJF, Round Robin, Priority (Non‑/Preemptive), **MLQ**, or **MLFQ**. Set time quantum for RR, MLQ, and MLFQ. For MLQ, use the Priority column as **queue level** (0 = highest). Optionally enable **Compare two algorithms** to pick a second algorithm.
+4. **View results** – Gantt chart, metrics (including CPU utilization), per-process bar chart, and process table update in real time. Use **step controls** (← ▶ → ↺) to play through the Gantt step-by-step with ready-queue explanation.
+5. **Share or export** – Use **Share link** to copy the current configuration URL, or **Export** to download CSV, JSON, or Gantt PNG.
 
 ### Process Configuration
 
@@ -181,13 +225,15 @@ npm start
 | **PID** | Process identifier | P1, P2, P3 |
 | **Arrival Time** | When process enters ready queue | 0, 2, 4 |
 | **Burst Time** | CPU time required | 4, 2, 6 |
-| **Priority** | Priority level (lower = higher priority) | 1, 2, 3 |
+| **Priority** | Priority level (lower = higher priority); used for Priority and Priority (Preemptive) | 1, 2, 3 |
 
 ### Understanding Results
 
-- **Gantt Chart** – Timeline of which process runs at each time unit.
-- **Metrics** – Average waiting time, turnaround time, response time, throughput, context switches.
-- **Per-Process Table** – Completion time, waiting time, and turnaround time for each process.
+- **Gantt Chart** – Timeline of which process runs at each time unit; amber segments indicate context-switch boundaries. Step-through playback shows the ready queue and a short explanation per step.
+- **Metrics** – Average waiting time, turnaround time, response time, throughput, context switches, and CPU utilization (percent and busy/total time).
+- **Per-Process Bar Chart** – Waiting and turnaround time per process (MUI X Charts).
+- **Process Details Table** – Completion time, waiting time, and turnaround time for each process.
+- **Compare Mode** – When enabled, a side-by-side metrics table and two Gantt charts show which algorithm performs better on each metric.
 
 ---
 
@@ -215,8 +261,8 @@ Runs a CPU scheduling simulation with the specified algorithm and processes.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `algorithm` | string | Yes | One of: `fcfs`, `sjf`, `round_robin`, `priority` |
-| `timeQuantum` | number | No | Time slice for Round Robin (default: 2) |
+| `algorithm` | string | Yes | One of: `fcfs`, `sjf`, `round_robin`, `priority`, `priority_preemptive`, `mlq`, `mlfq` (alias `rr` for Round Robin) |
+| `timeQuantum` | number | No | Time slice for Round Robin, MLQ, and MLFQ (default: 2) |
 | `processes` | array | Yes | Array of process objects (pid, arrivalTime, burstTime, priority optional) |
 
 #### Response
@@ -265,26 +311,33 @@ CPU-Scheduling-Visualizer/
 │   │   │   └── simulate/
 │   │   │       └── route.ts      # POST /api/simulate
 │   │   ├── globals.css
-│   │   ├── layout.tsx            # Root layout
-│   │   ├── page.tsx              # Landing page (/)
+│   │   ├── layout.tsx           # Root layout
+│   │   ├── page.tsx             # Landing page (/)
 │   │   └── simulator/
-│   │       └── page.tsx          # Simulator page (/simulator)
+│   │       └── page.tsx         # Simulator page (/simulator)
 │   ├── components/
 │   │   ├── GanttChart.tsx
+│   │   ├── Checkbox.tsx
 │   │   ├── LocomotiveScroll.tsx
-│   │   └── landing/              # Landing page components
-│   │   └── technologies/        # Tech stack icons
+│   │   ├── landing/             # Landing page components
+│   │   └── technologies/       # Tech stack icons
 │   ├── lib/
-│   │   └── cpu-scheduler/       # Simulation engine
-│   │       ├── algorithms/
-│   │       │   ├── fcfs.ts
-│   │       │   ├── sjf.ts
-│   │       │   ├── rr.ts
-│   │       │   └── priority.ts
-│   │       ├── evaluator/
-│   │       │   └── switcher.ts   # Smart algorithm switcher
-│   │       ├── metrics.ts
-│   │       └── types.ts
+│   │   ├── cpu-scheduler/       # Simulation engine
+│   │   │   ├── algorithms/
+│   │   │   │   ├── fcfs.ts
+│   │   │   │   ├── sjf.ts
+│   │   │   │   ├── rr.ts
+│   │   │   │   ├── priority.ts
+│   │   │   │   ├── priorityPreemptive.ts
+│   │   │   │   ├── mlq.ts
+│   │   │   │   └── mlfq.ts
+│   │   │   ├── evaluator/
+│   │   │   │   └── switcher.ts  # Smart algorithm switcher
+│   │   │   ├── metrics.ts
+│   │   │   └── types.ts
+│   │   ├── url-state.ts         # URL encode/decode simulator state (share links)
+│   │   ├── simulator-presets.ts # Quick-load presets
+│   │   └── export-utils.ts      # CSV, JSON, PNG export
 │   ├── views/
 │   │   ├── Landing.tsx
 │   │   ├── Simulator.tsx
@@ -322,6 +375,7 @@ CPU-Scheduling-Visualizer/
 | Waiting Time (WT) | TAT - Burst Time |
 | Average Waiting Time | Σ(WT) / n |
 | Throughput | n / max(CT) |
+| CPU Utilization | (Total busy time / Total time) × 100% |
 
 ### Smart Switching Logic
 
