@@ -234,15 +234,19 @@ export default function MetricExplanationModal({
             onClick={onClose}
             className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm"
           />
-          <motion.dialog
-            open={open}
-            onClose={onClose}
-            initial={{ opacity: 0, scale: 0.96, y: 8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 8 }}
-            transition={{ duration: 0.2 }}
-            className="fixed left-1/2 top-1/2 z-[101] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-neutral-900 shadow-2xl outline-none"
+          <div
+            className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none"
+            aria-hidden
           >
+            <motion.dialog
+              open={open}
+              onClose={onClose}
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ duration: 0.2 }}
+              className="w-full max-w-lg rounded-2xl border border-white/10 bg-neutral-900 shadow-2xl outline-none pointer-events-auto max-h-[90vh] overflow-y-auto"
+            >
             <div className="p-5 sm:p-6">
               <div className="flex items-start justify-between gap-4 mb-4">
                 <h3 className="font-display text-lg font-semibold text-white tracking-tight">
@@ -286,7 +290,8 @@ export default function MetricExplanationModal({
                 </button>
               </div>
             </div>
-          </motion.dialog>
+            </motion.dialog>
+          </div>
         </>
       )}
     </AnimatePresence>

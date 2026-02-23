@@ -1,16 +1,23 @@
 import type { AlgorithmType, SimulationResult, ProcessInput } from '../types';
 import { runFCFS } from '../algorithms/fcfs';
 import { runSJF } from '../algorithms/sjf';
+import { runSJFNonPreemptive } from '../algorithms/sjfNonPreemptive';
+import { runLJF } from '../algorithms/ljf';
+import { runLRTF } from '../algorithms/lrtf';
 import { runRoundRobin } from '../algorithms/rr';
 import { runPriority } from '../algorithms/priority';
 import { runPriorityPreemptive } from '../algorithms/priorityPreemptive';
+import { runHRRN } from '../algorithms/hrrn';
+import { runLottery } from '../algorithms/lottery';
+import { runStride } from '../algorithms/stride';
+import { runFCFSWithIO } from '../algorithms/fcfsIo';
 import { runMLQ } from '../algorithms/mlq';
 import { runMLFQ } from '../algorithms/mlfq';
 
 const MAX_CONTEXT_SWITCHES_PER_PROCESS = 2.5;
 const MAX_AVG_WAITING_TIME_RATIO = 2.0;
 
-function runAlgorithm(
+export function runAlgorithm(
   algo: AlgorithmType,
   processes: ProcessInput[],
   timeQuantum?: number
@@ -20,12 +27,26 @@ function runAlgorithm(
       return runFCFS(processes);
     case 'sjf':
       return runSJF(processes);
+    case 'sjf_nonpreemptive':
+      return runSJFNonPreemptive(processes);
+    case 'ljf':
+      return runLJF(processes);
+    case 'lrtf':
+      return runLRTF(processes);
     case 'round_robin':
       return runRoundRobin(processes, timeQuantum ?? 2);
     case 'priority':
       return runPriority(processes);
     case 'priority_preemptive':
       return runPriorityPreemptive(processes);
+    case 'hrrn':
+      return runHRRN(processes);
+    case 'lottery':
+      return runLottery(processes, timeQuantum ?? 2);
+    case 'stride':
+      return runStride(processes, timeQuantum ?? 2);
+    case 'fcfs_io':
+      return runFCFSWithIO(processes);
     case 'mlq':
       return runMLQ(processes, timeQuantum ?? 2);
     case 'mlfq':

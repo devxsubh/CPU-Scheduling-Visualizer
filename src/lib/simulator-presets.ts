@@ -12,19 +12,6 @@ function pidSeq(start: number, count: number): number[] {
 
 export const PRESETS: Preset[] = [
   {
-    name: 'Random (5)',
-    description: '5 processes, random arrival & burst',
-    getProcesses: () => {
-      const count = 5;
-      return pidSeq(1, count).map((pid, i) => ({
-        pid,
-        arrivalTime: Math.floor(Math.random() * 6),
-        burstTime: Math.max(1, Math.floor(Math.random() * 8) + 1),
-        priority: Math.floor(Math.random() * 3) + 1,
-      }));
-    },
-  },
-  {
     name: 'Convoy effect',
     description: 'One long job first, then short',
     getProcesses: () => [

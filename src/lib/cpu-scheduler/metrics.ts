@@ -35,6 +35,7 @@ export function computeMetrics(
   const contextSwitches = ganttChart.filter((e) => e.isContextSwitch).length;
   const totalWait = processResults.reduce((s, p) => s + p.waitingTime, 0);
   const totalTurnaround = processResults.reduce((s, p) => s + p.turnaroundTime, 0);
+  const totalTime = ganttChart.length > 0 ? Math.max(...ganttChart.map((e) => e.end), 0) : 0;
   const maxTime = Math.max(...processResults.map((p) => p.completionTime), 0);
 
   const totalResponseTime = processes.reduce((sum, p) => {
@@ -42,12 +43,18 @@ export function computeMetrics(
     return sum + (firstResponse - p.arrivalTime);
   }, 0);
 
+  const cpuBusyTime = ganttChart
+    .filter((e) => !e.isContextSwitch && e.pid > 0)
+    .reduce((s, e) => s + (e.end - e.start), 0);
+
   const metrics: Metrics = {
     avgWaitingTime: n > 0 ? Math.round((totalWait / n) * 100) / 100 : 0,
     avgTurnaroundTime: n > 0 ? Math.round((totalTurnaround / n) * 100) / 100 : 0,
     avgResponseTime: n > 0 ? Math.round((totalResponseTime / n) * 100) / 100 : 0,
     contextSwitches,
-    throughput: maxTime > 0 ? Math.round((n / maxTime) * 100) / 100 : 0,
+    throughput: totalTime > 0 ? Math.round((n / totalTime) * 100) / 100 : 0,
+    totalTime: totalTime > 0 ? Math.round(totalTime * 100) / 100 : undefined,
+    cpuUtilization: totalTime > 0 ? Math.round((cpuBusyTime / totalTime) * 1000) / 1000 : undefined,
   };
 
   return { processes: processResults, metrics, contextSwitches };

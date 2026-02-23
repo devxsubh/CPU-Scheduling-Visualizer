@@ -2,17 +2,31 @@
 export type AlgorithmType =
   | 'fcfs'
   | 'sjf'
+  | 'sjf_nonpreemptive'
+  | 'ljf'
+  | 'lrtf'
   | 'round_robin'
   | 'priority'
   | 'priority_preemptive'
+  | 'hrrn'
+  | 'lottery'
+  | 'stride'
+  | 'fcfs_io'
   | 'mlq'
-  | 'mlfq';
+  | 'mlfq'
+  | 'custom';
 
 export interface ProcessInput {
   pid: number;
   arrivalTime: number;
   burstTime: number;
   priority?: number;
+  /** Lottery: number of tickets (default 1). */
+  tickets?: number;
+  /** Stride: stride value (inverse of share); default derived from weight 1. */
+  stride?: number;
+  /** I/O bursts: [cpu1, io1, cpu2, io2, ...]. If present, overrides single burstTime for multi-phase. */
+  bursts?: number[];
 }
 
 export interface GanttEntry {
@@ -38,6 +52,10 @@ export interface Metrics {
   avgResponseTime: number;
   contextSwitches: number;
   throughput: number;
+  /** Total timeline length including context-switch cost (if any). */
+  totalTime?: number;
+  /** CPU utilization (0–1) when context-switch cost is used. */
+  cpuUtilization?: number;
 }
 
 export interface SimulationResult {
@@ -51,6 +69,10 @@ export interface SimulateRequest {
   algorithm: AlgorithmType;
   timeQuantum?: number;
   processes: ProcessInput[];
+  /** Context-switch cost in time units (0 = none). */
+  contextSwitchCost?: number;
+  /** For custom algorithm: JS code that returns a strategy function. */
+  customAlgorithmCode?: string;
 }
 
 export interface SimulateResponse {

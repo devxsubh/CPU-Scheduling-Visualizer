@@ -13,12 +13,20 @@ const darkTheme = createTheme({
 
 const ALG_LABELS: Record<AlgorithmType, string> = {
   fcfs: 'FCFS',
-  sjf: 'SJF',
+  sjf: 'SRTF',
+  sjf_nonpreemptive: 'SJF (Non-preemptive)',
+  ljf: 'LJF',
+  lrtf: 'LRTF',
   round_robin: 'Round Robin',
   priority: 'Priority',
   priority_preemptive: 'Priority (Preemptive)',
+  hrrn: 'HRRN',
+  lottery: 'Lottery',
+  stride: 'Stride',
+  fcfs_io: 'FCFS + I/O',
   mlq: 'Multilevel Queue',
   mlfq: 'Multilevel Feedback Queue',
+  custom: 'Custom',
 };
 
 interface ResultsProps {

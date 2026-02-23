@@ -3,11 +3,19 @@ import type { ProcessInput, AlgorithmType } from '@/types';
 const ALG_VALUES: AlgorithmType[] = [
   'fcfs',
   'sjf',
+  'sjf_nonpreemptive',
+  'ljf',
+  'lrtf',
   'round_robin',
   'priority',
   'priority_preemptive',
+  'hrrn',
+  'lottery',
+  'stride',
+  'fcfs_io',
   'mlq',
   'mlfq',
+  'custom',
 ];
 
 export interface SimulatorUrlState {
@@ -53,7 +61,7 @@ export function buildSimulatorSearchParams(
   if (!algorithm || processes.length === 0) return '';
   const params = new URLSearchParams();
   params.set('algorithm', algorithm);
-  if (algorithm === 'round_robin') params.set('q', String(timeQuantum));
+  if (['round_robin', 'lottery', 'stride', 'mlq', 'mlfq'].includes(algorithm)) params.set('q', String(timeQuantum));
   processes.forEach((p) => {
     params.append('p', [p.pid, p.arrivalTime, p.burstTime, p.priority ?? 1].join(','));
   });

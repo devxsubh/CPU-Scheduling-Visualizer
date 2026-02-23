@@ -1,17 +1,28 @@
 export type AlgorithmType =
   | 'fcfs'
   | 'sjf'
+  | 'sjf_nonpreemptive'
+  | 'ljf'
+  | 'lrtf'
   | 'round_robin'
   | 'priority'
   | 'priority_preemptive'
+  | 'hrrn'
+  | 'lottery'
+  | 'stride'
+  | 'fcfs_io'
   | 'mlq'
-  | 'mlfq';
+  | 'mlfq'
+  | 'custom';
 
 export interface ProcessInput {
   pid: number;
   arrivalTime: number;
   burstTime: number;
   priority?: number;
+  tickets?: number;
+  stride?: number;
+  bursts?: number[];
 }
 
 export interface GanttEntry {
