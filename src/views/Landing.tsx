@@ -32,6 +32,8 @@ import Motion from '@/components/technologies/Motion';
 import MUI from '@/components/technologies/MUI';
 import ExpressJs from '@/components/technologies/ExpressJs';
 import NodeJs from '@/components/technologies/NodeJs';
+import { ALGORITHM_INFO } from '@/lib/algorithm-info';
+import type { AlgorithmType } from '@/types';
 
 const viewport = { once: true, amount: 0.12 };
 const fadeUp = (delay = 0) => ({
@@ -49,57 +51,57 @@ const cardVariants = {
   },
 };
 
-// Algorithm data for detailed explanations
-const ALGORITHMS = [
-  {
-    id: 'fcfs',
-    name: 'First Come First Serve',
-    shortName: 'FCFS',
-    type: 'Non-Preemptive',
-    description: 'The simplest scheduling algorithm. Processes are executed in the exact order they arrive in the ready queue.',
-    pros: ['Simple to implement', 'No starvation', 'Fair in terms of arrival order'],
-    cons: ['Convoy effect', 'High average waiting time', 'Not optimal for interactive systems'],
-    formula: 'Waiting Time = Start Time - Arrival Time',
-    useCase: 'Batch processing systems where simplicity is preferred over efficiency.',
-    color: 'from-blue-500 to-cyan-500',
-  },
-  {
-    id: 'sjf',
-    name: 'Shortest Job First',
-    shortName: 'SJF',
-    type: 'Preemptive (SRTF)',
-    description: 'Selects the process with the smallest remaining burst time. Our implementation uses preemptive SJF (Shortest Remaining Time First).',
-    pros: ['Minimum average waiting time', 'Optimal for batch systems', 'Efficient CPU utilization'],
-    cons: ['Requires burst time prediction', 'May cause starvation', 'Overhead of tracking remaining time'],
-    formula: 'Always picks min(remaining_burst_time)',
-    useCase: 'Systems where burst times are predictable and minimizing wait time is critical.',
-    color: 'from-green-500 to-emerald-500',
-  },
-  {
-    id: 'rr',
-    name: 'Round Robin',
-    shortName: 'RR',
-    type: 'Preemptive',
-    description: 'Each process gets a fixed time slice (quantum). After the quantum expires, the process is moved to the back of the queue.',
-    pros: ['Fair CPU allocation', 'Good response time', 'No starvation'],
-    cons: ['High context switch overhead', 'Performance depends on quantum', 'Higher turnaround for long processes'],
-    formula: 'Context Switches ≈ Total Burst / Quantum',
-    useCase: 'Time-sharing systems and interactive applications requiring responsiveness.',
-    color: 'from-purple-500 to-pink-500',
-  },
-  {
-    id: 'priority',
-    name: 'Priority Scheduling',
-    shortName: 'Priority',
-    type: 'Non-Preemptive',
-    description: 'Each process is assigned a priority. The CPU is allocated to the process with the highest priority (lower number = higher priority).',
-    pros: ['Flexible prioritization', 'Good for real-time systems', 'Important tasks run first'],
-    cons: ['May cause starvation', 'Priority inversion problem', 'Requires priority assignment logic'],
-    formula: 'Next Process = min(priority) from ready queue',
-    useCase: 'Real-time systems where certain processes must complete before others.',
-    color: 'from-orange-500 to-red-500',
-  },
+// Display metadata for each algorithm (type label + use case)
+const ALGORITHM_META: Partial<Record<AlgorithmType, { type: string; useCase: string }>> = {
+  fcfs: { type: 'Non-Preemptive', useCase: 'Batch processing where simplicity is preferred over efficiency.' },
+  sjf: { type: 'Preemptive (SRTF)', useCase: 'Minimizing average waiting time when burst times are predictable.' },
+  sjf_nonpreemptive: { type: 'Non-Preemptive', useCase: 'Batch systems when jobs are known in advance.' },
+  ljf: { type: 'Non-Preemptive', useCase: 'Favoring long-running jobs.' },
+  lrtf: { type: 'Preemptive', useCase: 'Preemptive favoring of long jobs.' },
+  round_robin: { type: 'Preemptive', useCase: 'Time-sharing and interactive systems; fair CPU allocation.' },
+  priority: { type: 'Non-Preemptive', useCase: 'Real-time systems where certain tasks must run first.' },
+  priority_preemptive: { type: 'Preemptive', useCase: 'Real-time systems with dynamic priority arrivals.' },
+  mlq: { type: 'Multi-Queue', useCase: 'Separating workload types (e.g. system vs user) with different policies.' },
+  hrrn: { type: 'Non-Preemptive', useCase: 'Balancing waiting time and service time; reduces starvation.' },
+  lottery: { type: 'Proportional-Share', useCase: 'Proportional CPU share with simple ticket assignment.' },
+  stride: { type: 'Proportional-Share', useCase: 'Deterministic proportional CPU allocation.' },
+  fcfs_io: { type: 'With I/O', useCase: 'Realistic I/O-bound workloads and blocking behavior.' },
+  mlfq: { type: 'Multi-Queue + Feedback', useCase: 'Favoring short and I/O-bound jobs without prior knowledge.' },
+  custom: { type: 'User-Defined', useCase: 'Experiments and custom scheduling logic in JavaScript.' },
+};
+
+const ALGORITHM_COLORS: string[] = [
+  'from-blue-500 to-cyan-500',
+  'from-green-500 to-emerald-500',
+  'from-purple-500 to-pink-500',
+  'from-orange-500 to-red-500',
+  'from-teal-500 to-cyan-500',
+  'from-amber-500 to-orange-500',
+  'from-indigo-500 to-purple-500',
+  'from-rose-500 to-pink-500',
+  'from-sky-500 to-blue-500',
+  'from-lime-500 to-green-500',
+  'from-fuchsia-500 to-pink-500',
+  'from-cyan-500 to-teal-500',
+  'from-violet-500 to-purple-500',
+  'from-emerald-500 to-green-500',
+  'from-neutral-600 to-neutral-800',
 ];
+
+// Build algorithm list from app's single source of truth (ALGORITHM_INFO)
+const ALGORITHMS = (Object.entries(ALGORITHM_INFO) as [AlgorithmType, typeof ALGORITHM_INFO[AlgorithmType]][])
+  .map(([id, info], i) => ({
+    id,
+    name: info.name,
+    shortName: info.shortName,
+    type: ALGORITHM_META[id]?.type ?? '—',
+    description: info.description,
+    pros: info.pros,
+    cons: info.cons,
+    formula: info.formula,
+    useCase: ALGORITHM_META[id]?.useCase ?? 'See simulator for behavior.',
+    color: ALGORITHM_COLORS[i % ALGORITHM_COLORS.length],
+  }));
 
 export default function Landing() {
   const router = useRouter();
@@ -504,7 +506,7 @@ export default function Landing() {
             viewport={viewport}
             transition={{ delay: 0.15 }}
           >
-            The simulator supports multiple CPU scheduling algorithms—from basic FCFS and SJF to Round Robin, Priority (preemptive and non-preemptive), HRRN, Multilevel Queue, Multilevel Feedback Queue, and I/O-aware scheduling—each with distinct behavior and use cases.
+            Every scheduling algorithm available in the simulator is listed below. You can try each one in the simulator and compare behavior, metrics, and Gantt charts in real time.
           </motion.p>
         </div>
 
