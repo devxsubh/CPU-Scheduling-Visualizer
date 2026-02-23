@@ -9,7 +9,8 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import GanttChart from '@/components/GanttChart';
 import Checkbox from '@/components/Checkbox';
 import ReadyQueueAnimation from '@/components/ReadyQueueAnimation';
-import type { ProcessInput, AlgorithmType, SimulateResponse } from '@/types';
+import MetricExplanationModal from '@/components/MetricExplanationModal';
+import type { ProcessInput, AlgorithmType, SimulateResponse, Metrics } from '@/types';
 import { PRESETS } from '@/lib/simulator-presets';
 import { downloadCSV, downloadGanttPNG, downloadJSON } from '@/lib/export-utils';
 import { parseSimulatorSearchParams, buildSimulatorSearchParams } from '@/lib/url-state';
@@ -69,6 +70,7 @@ export default function Simulator() {
   const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
   const [algorithmBDropdownOpen, setAlgorithmBDropdownOpen] = useState(false);
   const [showQueueAnimation, setShowQueueAnimation] = useState(false);
+  const [metricExplanationKey, setMetricExplanationKey] = useState<keyof Metrics | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const exportDropdownRef = useRef<HTMLDivElement>(null);
@@ -921,30 +923,49 @@ export default function Simulator() {
                 </div>
               </div>
 
-              {/* Metrics */}
+              {/* Metrics — click for explanation */}
               <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 mb-8">
-                {[
-                  { label: 'Avg Waiting', value: result.metrics.avgWaitingTime.toFixed(2), unit: 'ms' },
-                  { label: 'Avg Turnaround', value: result.metrics.avgTurnaroundTime.toFixed(2), unit: 'ms' },
-                  { label: 'Avg Response', value: result.metrics.avgResponseTime.toFixed(2), unit: 'ms' },
-                  { label: 'Throughput', value: result.metrics.throughput.toFixed(2), unit: 'p/ms' },
-                  { label: 'Context Switches', value: String(result.metrics.contextSwitches), unit: '' },
-                ].map((m, i) => (
-                  <motion.div
-                    key={m.label}
-                    className="rounded-xl border border-white/10 bg-white/[0.02] p-4"
+                {(
+                  [
+                    { key: 'avgWaitingTime' as const, label: 'Avg Waiting', value: result.metrics.avgWaitingTime.toFixed(2), unit: 'ms' },
+                    { key: 'avgTurnaroundTime' as const, label: 'Avg Turnaround', value: result.metrics.avgTurnaroundTime.toFixed(2), unit: 'ms' },
+                    { key: 'avgResponseTime' as const, label: 'Avg Response', value: result.metrics.avgResponseTime.toFixed(2), unit: 'ms' },
+                    { key: 'throughput' as const, label: 'Throughput', value: result.metrics.throughput.toFixed(2), unit: 'p/ms' },
+                    { key: 'contextSwitches' as const, label: 'Context Switches', value: String(result.metrics.contextSwitches), unit: '' },
+                  ] as const
+                ).map((m, i) => (
+                  <motion.button
+                    key={m.key}
+                    type="button"
+                    onClick={() => setMetricExplanationKey(m.key)}
+                    className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-left hover:bg-white/[0.06] hover:border-white/20 transition-all focus:outline-none focus:ring-2 focus:ring-white/20 focus:ring-offset-2 focus:ring-offset-black"
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}
+                    title="Click to learn how this is calculated"
                   >
-                    <p className="font-mono text-[10px] text-white/40 tracking-wider uppercase mb-1">{m.label}</p>
+                    <p className="font-mono text-[10px] text-white/40 tracking-wider uppercase mb-1 flex items-center justify-between">
+                      <span>{m.label}</span>
+                      <span className="text-white/30 hover:text-white/60 transition-colors" title="Click for formula & breakdown">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </span>
+                    </p>
                     <p className="text-xl font-display font-semibold text-white tracking-tight">
                       {m.value}
                       {m.unit && <span className="text-white/50 text-sm ml-1">{m.unit}</span>}
                     </p>
-                  </motion.div>
+                  </motion.button>
                 ))}
               </div>
+
+              <MetricExplanationModal
+                open={metricExplanationKey !== null}
+                onClose={() => setMetricExplanationKey(null)}
+                metricKey={metricExplanationKey}
+                result={result}
+              />
 
               {/* Step controls – next to Gantt Chart */}
               <div className="p-4 rounded-xl bg-white/[0.04] border border-white/10 flex flex-wrap items-center gap-4 mb-4">
