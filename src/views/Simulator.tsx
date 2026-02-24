@@ -33,6 +33,7 @@ import {
 } from '@/lib/scenario-utils';
 import RandomGeneratorModal from '@/components/RandomGeneratorModal';
 import SavedScenariosModal from '@/components/SavedScenariosModal';
+import SimulatorGuide, { type GuideStep } from '@/components/SimulatorGuide';
 
 const darkTheme = createTheme({
   palette: {
@@ -60,6 +61,44 @@ const ALG_LABELS: Record<AlgorithmType, string> = {
   mlfq: 'Multilevel Feedback Queue',
   custom: 'Custom',
 };
+
+const GUIDE_STEPS: GuideStep[] = [
+  {
+    id: 'welcome',
+    title: 'Welcome to the CPU Scheduler Simulator',
+    body: 'This tool helps you visualize how different CPU scheduling algorithms work. You\'ll configure processes and an algorithm on the left, then see the Gantt chart and metrics on the right. Let\'s walk through each part.',
+  },
+  {
+    id: 'algorithm',
+    title: 'Choose a scheduling algorithm',
+    body: 'Select an algorithm (e.g. FCFS, Round Robin, SRTF). Some algorithms use time quantum or priority. The simulation runs automatically once you\'ve chosen one. Use the (i) button for a short explanation.',
+  },
+  {
+    id: 'quickload',
+    title: 'Quick load & presets',
+    body: 'Load example presets, generate random processes, or import from a CSV/JSON file. Use Export in the header to save or load scenarios in the browser or as a file.',
+  },
+  {
+    id: 'processes',
+    title: 'Process table',
+    body: 'Add or edit processes: PID, arrival time, burst time, and (for some algorithms) priority or tickets. Each row is one process. Remove a process with the × button.',
+  },
+  {
+    id: 'results',
+    title: 'Simulation output',
+    body: 'After you pick an algorithm, results appear here: throughput, CPU utilization, metrics (waiting time, turnaround, etc.), and the Gantt chart showing which process runs when.',
+  },
+  {
+    id: 'gantt',
+    title: 'Gantt chart & step-through',
+    body: 'The Gantt chart shows the timeline of execution. Use the step controls (←, ▶, →) to move through the schedule step by step. Click metric cards to see how they\'re calculated.',
+  },
+  {
+    id: 'done',
+    title: "You're all set",
+    body: 'Use Share link to copy a URL with your current config. Open Shortcuts for keyboard tips. Have fun exploring different algorithms and process sets!',
+  },
+];
 
 const inputClass =
   'w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white font-mono text-sm placeholder-neutral-500 focus:ring-2 focus:ring-white/20 focus:border-neutral-500 outline-none transition-all duration-200';
@@ -111,12 +150,19 @@ export default function Simulator() {
   const [savedScenarios, setSavedScenarios] = useState<ReturnType<typeof getSavedScenarios>>([]);
   const [scenarioNameToSave, setScenarioNameToSave] = useState('');
   const [loadScenarioId, setLoadScenarioId] = useState('');
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [guideStepIndex, setGuideStepIndex] = useState(0);
   const importFileRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const algorithmBDropdownRef = useRef<HTMLDivElement>(null);
   const ganttRef = useRef<HTMLDivElement>(null);
   const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const hasAppliedUrlRef = useRef(false);
+  const tourAlgorithmRef = useRef<HTMLDivElement>(null);
+  const tourQuickLoadRef = useRef<HTMLDivElement>(null);
+  const tourProcessesRef = useRef<HTMLDivElement>(null);
+  const tourResultsRef = useRef<HTMLDivElement>(null);
+  const tourGanttRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setSavedScenarios(getSavedScenarios());
@@ -743,7 +789,15 @@ export default function Simulator() {
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1v-1M4 12H3v-1m18 0h-1v-1M3 12c0-5 4-9 9-9s9 4 9 9-4 9-9 9m0-9v1m0 16v-1" />
             </svg>
-            <span className="hidden sm:inline">Shortcuts</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => { setGuideOpen(true); setGuideStepIndex(0); }}
+            className="flex items-center justify-center w-9 h-9 rounded-lg border border-white/20 text-white/80 font-mono text-sm hover:bg-white/10 hover:text-white transition-all"
+            title="Simulator guide (first-time tour)"
+            aria-label="Open simulator guide"
+          >
+            ?
           </button>
           {loading && (
             <span className="text-white/50 text-sm font-mono">Simulating...</span>
@@ -753,6 +807,22 @@ export default function Simulator() {
       </header>
 
       <ShortcutsModal open={shortcutsModalOpen} onClose={() => setShortcutsModalOpen(false)} />
+
+      <SimulatorGuide
+        open={guideOpen}
+        onClose={() => setGuideOpen(false)}
+        steps={GUIDE_STEPS}
+        stepIndex={guideStepIndex}
+        onStepChange={setGuideStepIndex}
+        targetRef={
+          guideStepIndex === 1 ? tourAlgorithmRef
+            : guideStepIndex === 2 ? tourQuickLoadRef
+            : guideStepIndex === 3 ? tourProcessesRef
+            : guideStepIndex === 4 ? tourResultsRef
+            : guideStepIndex === 5 ? tourGanttRef
+            : null
+        }
+      />
 
       <div className="pt-20 flex flex-col lg:flex-row min-h-screen">
         {/* Left Panel - Inputs */}
@@ -767,7 +837,7 @@ export default function Simulator() {
           </div>
 
           {/* Algorithm Selection */}
-          <section className="mb-8">
+          <section ref={tourAlgorithmRef} className="mb-8">
             <span className="font-mono text-[11px] tracking-[0.2em] text-white/50 uppercase block mb-3">
               Algorithm
             </span>
@@ -1041,7 +1111,7 @@ export default function Simulator() {
           </section>
 
           {/* Presets & scenarios */}
-          <section className="mb-6">
+          <section ref={tourQuickLoadRef} className="mb-6">
             <span className="font-mono text-[11px] tracking-[0.2em] text-white/50 uppercase block mb-2">
               Quick load
             </span>
@@ -1118,7 +1188,7 @@ export default function Simulator() {
           />
 
           {/* Processes */}
-          <section className="mb-6">
+          <section ref={tourProcessesRef} className="mb-6">
             <div className="flex items-center justify-between mb-3">
               <span className="font-mono text-[11px] tracking-[0.2em] text-white/50 uppercase">
                 Processes
@@ -1248,7 +1318,7 @@ export default function Simulator() {
         </div>
 
         {/* Right Panel - Results */}
-        <div className="flex-1 p-6 lg:p-8 lg:h-[calc(100vh-80px)] lg:overflow-y-auto">
+        <div ref={tourResultsRef} className="flex-1 p-6 lg:p-8 lg:h-[calc(100vh-80px)] lg:overflow-y-auto">
           <div className="mb-8">
             <p className="font-mono text-[11px] tracking-[0.25em] text-white/40 uppercase mb-2">
               Real-time Results
@@ -1446,6 +1516,7 @@ export default function Simulator() {
               </div>
 
               {/* Step controls – next to Gantt Chart */}
+              <div ref={tourGanttRef} className="space-y-4">
               <div className="p-4 rounded-xl bg-white/[0.04] border border-white/10 flex flex-wrap items-center gap-4 mb-4">
                 <div className="flex items-center gap-1">
                   <button
@@ -1646,6 +1717,7 @@ export default function Simulator() {
               </div>
               <GanttChart data={stepDisplayGantt} maxTime={stepDisplayMaxTime} height={180} />
               </motion.section>
+              </div>
 
               {/* Bar Chart */}
               <motion.section
