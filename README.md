@@ -46,15 +46,16 @@ Whether you're a student learning OS concepts or a developer building scheduling
 | Feature | Description |
 |---------|-------------|
 | **Real-time Simulation** | See results update instantly as you modify inputs (debounced) |
-| **Seven Algorithms** | FCFS, SJF, Round Robin, Priority (Non‑/Preemptive), **Multilevel Queue (MLQ)**, **Multilevel Feedback Queue (MLFQ)** |
+| **15 Scheduling Algorithms** | FCFS, SRTF, SJF (non‑preemptive), LJF, LRTF, Round Robin, Priority (both), HRRN, MLQ, MLFQ, Lottery, Stride, FCFS+I/O, and Custom (JavaScript) |
 | **Interactive Gantt Chart** | Animated visualization with context-switch boundaries |
-| **Step-by-Step Playback** | Play, pause, prev/next through Gantt steps with ready-queue and explanation |
-| **Compare Two Algorithms** | Side-by-side metrics table and Gantt charts for any two algorithms |
+| **Step-by-Step Playback** | Play, pause, prev/next through Gantt steps with ready-queue and narration |
+| **Compare Up to 4 Algorithms** | Side-by-side metrics and Gantt charts for multiple algorithms |
 | **Performance Metrics** | Avg waiting/turnaround/response time, throughput, context switches, CPU utilization |
 | **Smart Algorithm Switcher** | Automatic optimization that switches to a better algorithm when needed |
 | **Share Link** | Copy URL with current config (algorithm, quantum, processes) to share or bookmark |
 | **Export** | Download results as CSV, JSON, or Gantt chart as PNG |
-| **Quick-Load Presets** | One-click presets: Random (5), Convoy effect, RR heavy, SJF friendly, Priority demo |
+| **Quick-Load Presets** | One-click presets: Convoy effect, RR heavy, SJF friendly, Priority demo; plus random generator |
+| **Saved Scenarios** | Save and load scenario files (processes + algorithm + settings) |
 | **Modern UI/UX** | Dark-themed simulator with smooth animations (Framer Motion) |
 | **Responsive Design** | Works seamlessly on desktop and tablet devices |
 
@@ -69,87 +70,33 @@ The simulator includes an intelligent evaluator that can automatically switch al
 
 ## Supported Algorithms
 
-### 1. First Come First Serve (FCFS)
+All algorithms are documented in the app (landing page and simulator). Summary:
 
-```
-Non-preemptive | Simple | May cause convoy effect
-```
+| # | Algorithm | Type | Brief description |
+|---|-----------|------|-------------------|
+| 1 | **FCFS** | Non-preemptive | First Come First Serve – execute in arrival order. |
+| 2 | **SRTF** | Preemptive | Shortest Remaining Time First – min remaining burst; preempt when shorter job arrives. |
+| 3 | **SJF** (non‑preemptive) | Non-preemptive | Shortest Job First – min burst among ready; run to completion. |
+| 4 | **LJF** | Non-preemptive | Longest Job First – max burst among ready; run to completion. |
+| 5 | **LRTF** | Preemptive | Longest Remaining Time First – max remaining burst; preempt on longer arrival. |
+| 6 | **Round Robin (RR)** | Preemptive | Fixed time quantum; after quantum, process goes to back of queue. |
+| 7 | **Priority** | Non-preemptive | Highest priority (lowest number) runs first; run to completion. |
+| 8 | **Priority (Preemptive)** | Preemptive | Same rule; preempt when higher-priority process arrives. |
+| 9 | **HRRN** | Non-preemptive | Highest Response Ratio Next – RR = (waiting + burst) / burst; max RR runs. |
+| 10 | **MLQ** | Multi-queue | Multilevel Queue – queues by priority; RR within each queue. |
+| 11 | **MLFQ** | Multi-queue + feedback | Multilevel Feedback Queue – demote after full quantum; favors short/I/O-bound. |
+| 12 | **Lottery** | Proportional-share | Tickets per process; random ticket wins each quantum. |
+| 13 | **Stride** | Proportional-share | Deterministic proportional share via stride and pass. |
+| 14 | **FCFS + I/O** | With I/O | FCFS with CPU/I/O burst pairs; process blocks during I/O. |
+| 15 | **Custom** | User-defined | JavaScript function `(state) => pid`; runs client-side only. |
 
-Processes are executed in the order they arrive in the ready queue.
+**Notes:**
 
-**Characteristics:** Non-preemptive, easy to implement, may lead to convoy effect. Best for batch systems.
-
----
-
-### 2. Shortest Job First (SJF) - Preemptive (SRTF)
-
-```
-Preemptive | Optimal waiting time | Requires burst time prediction
-```
-
-Also known as Shortest Remaining Time First (SRTF). The process with the smallest remaining burst time is executed; preemption occurs when a shorter job arrives.
-
-**Characteristics:** Preemptive, minimizes average waiting time (provably optimal), may cause starvation of long processes.
-
----
-
-### 3. Round Robin (RR)
-
-```
-Preemptive | Time-sliced | Fair | High context switches
-```
-
-Each process gets a fixed time quantum. After the quantum expires, the process is preempted and added to the end of the ready queue.
-
-**Characteristics:** Preemptive with configurable quantum, fair allocation, higher context switch overhead.
-
----
-
-### 4. Priority Scheduling (Non‑preemptive)
-
-```
-Non-preemptive | Priority-based | May cause starvation
-```
-
-The CPU is allocated to the process with the highest priority (lower number = higher priority in this implementation). Once a process starts, it runs to completion.
-
-**Characteristics:** Non-preemptive, flexible prioritization, used in real-time systems.
-
----
-
-### 5. Priority Scheduling (Preemptive)
-
-```
-Preemptive | Priority-based | Preempt on higher-priority arrival
-```
-
-Same priority rule (lower number = higher priority), but when a higher-priority process arrives, the currently running process is preempted and the new process runs.
-
-**Characteristics:** Preemptive, better responsiveness for high-priority jobs, may increase context switches.
-
----
-
-### 6. Multilevel Queue (MLQ)
-
-```
-Real-world | Queue per priority level | RR within each queue
-```
-
-Processes are permanently assigned to a queue by **priority** (here, the Priority field is the **queue level**: 0 = highest, 1 = next, etc.). The scheduler always runs the highest-priority non-empty queue; within each queue, processes are scheduled with **Round Robin** and a configurable time quantum.
-
-**Characteristics:** Used in real OSs to separate system, interactive, and batch jobs. No process moves between queues.
-
----
-
-### 7. Multilevel Feedback Queue (MLFQ)
-
-```
-Real-world | Adaptive | Demote after full quantum
-```
-
-All processes **start in the top queue**. Each queue runs Round Robin. If a process uses its **full time quantum** and still has burst left, it is **demoted** to the next lower queue. Short jobs finish quickly in the top queue(s); long jobs eventually sink to lower queues. Configurable time quantum and number of levels (default 3).
-
-**Characteristics:** No prior knowledge of burst length needed; balances response time and throughput. Used in many modern schedulers.
+- **Priority / MLQ:** Lower priority number = higher priority. For MLQ, the Priority field is the **queue level** (0 = highest).
+- **RR, MLQ, MLFQ:** Use the **time quantum** setting.
+- **Lottery / Stride:** Use **tickets** or **stride** per process (see simulator UI).
+- **FCFS + I/O:** Provide **bursts** array `[cpu1, io1, cpu2, io2, ...]` per process.
+- **Custom:** Write a small script in the simulator; no server call.
 
 ---
 
@@ -214,7 +161,7 @@ npm start
 
 1. **Landing page** – Read about the project, then click **Try Simulator** or **Launch Simulator**.
 2. **Simulator** – Add/remove processes (PID, arrival time, burst time, priority for Priority algorithms). Use **Quick load** presets to try predefined workloads.
-3. **Select algorithm** – Choose FCFS, SJF, Round Robin, Priority (Non‑/Preemptive), **MLQ**, or **MLFQ**. Set time quantum for RR, MLQ, and MLFQ. For MLQ, use the Priority column as **queue level** (0 = highest). Optionally enable **Compare two algorithms** to pick a second algorithm.
+3. **Select algorithm** – Choose from all 15 algorithms (FCFS, SRTF, SJF, RR, Priority, HRRN, MLQ, MLFQ, Lottery, Stride, FCFS+I/O, Custom, etc.). Set time quantum for RR, MLQ, and MLFQ. For MLQ, use the Priority column as **queue level** (0 = highest). Optionally enable **Compare** to run up to 4 algorithms side by side.
 4. **View results** – Gantt chart, metrics (including CPU utilization), per-process bar chart, and process table update in real time. Use **step controls** (← ▶ → ↺) to play through the Gantt step-by-step with ready-queue explanation.
 5. **Share or export** – Use **Share link** to copy the current configuration URL, or **Export** to download CSV, JSON, or Gantt PNG.
 
@@ -222,10 +169,12 @@ npm start
 
 | Field | Description | Example |
 |-------|-------------|---------|
-| **PID** | Process identifier | P1, P2, P3 |
+| **PID** | Process identifier | 1, 2, 3 |
 | **Arrival Time** | When process enters ready queue | 0, 2, 4 |
-| **Burst Time** | CPU time required | 4, 2, 6 |
-| **Priority** | Priority level (lower = higher priority); used for Priority and Priority (Preemptive) | 1, 2, 3 |
+| **Burst Time** | CPU time required (or use **Bursts** for I/O) | 4, 2, 6 |
+| **Priority** | Priority level (lower = higher); used for Priority algorithms and as **queue level** for MLQ | 1, 2, 3 |
+| **Bursts** | For FCFS+I/O: alternating CPU and I/O times | [2, 1, 3, 1] |
+| **Tickets / Stride** | For Lottery and Stride algorithms | e.g. 10 tickets, stride 100 |
 
 ### Understanding Results
 
@@ -233,13 +182,13 @@ npm start
 - **Metrics** – Average waiting time, turnaround time, response time, throughput, context switches, and CPU utilization (percent and busy/total time).
 - **Per-Process Bar Chart** – Waiting and turnaround time per process (MUI X Charts).
 - **Process Details Table** – Completion time, waiting time, and turnaround time for each process.
-- **Compare Mode** – When enabled, a side-by-side metrics table and two Gantt charts show which algorithm performs better on each metric.
+- **Compare Mode** – When enabled, run up to 4 algorithms side by side with metrics tables and Gantt charts to compare performance.
 
 ---
 
 ## API Documentation
 
-The app exposes one API route used by the simulator.
+The app exposes one API route used by the simulator. **Note:** The **Custom** (user-defined JavaScript) algorithm runs only in the browser and is not available via the API.
 
 ### POST /api/simulate
 
@@ -261,9 +210,9 @@ Runs a CPU scheduling simulation with the specified algorithm and processes.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `algorithm` | string | Yes | One of: `fcfs`, `sjf`, `round_robin`, `priority`, `priority_preemptive`, `mlq`, `mlfq` (alias `rr` for Round Robin) |
-| `timeQuantum` | number | No | Time slice for Round Robin, MLQ, and MLFQ (default: 2) |
-| `processes` | array | Yes | Array of process objects (pid, arrivalTime, burstTime, priority optional) |
+| `algorithm` | string | Yes | One of: `fcfs`, `sjf`, `sjf_nonpreemptive`, `ljf`, `lrtf`, `round_robin` (or `rr`), `priority`, `priority_preemptive`, `hrrn`, `mlq`, `mlfq`, `lottery`, `stride`, `fcfs_io` |
+| `timeQuantum` | number | No | Time slice for RR, MLQ, MLFQ (default: 2) |
+| `processes` | array | Yes | Array of process objects: `pid`, `arrivalTime`, `burstTime`, `priority` (optional). For FCFS+I/O use `bursts` (e.g. `[2,1,3,1]`). For Lottery/Stride use `tickets`/`stride`. |
 
 #### Response
 
@@ -309,42 +258,61 @@ CPU-Scheduling-Visualizer/
 │   ├── app/
 │   │   ├── api/
 │   │   │   └── simulate/
-│   │   │       └── route.ts      # POST /api/simulate
+│   │   │       └── route.ts        # POST /api/simulate
 │   │   ├── globals.css
-│   │   ├── layout.tsx           # Root layout
-│   │   ├── page.tsx             # Landing page (/)
+│   │   ├── layout.tsx              # Root layout
+│   │   ├── page.tsx                # Landing page (/)
 │   │   └── simulator/
-│   │       └── page.tsx         # Simulator page (/simulator)
+│   │       └── page.tsx            # Simulator page (/simulator)
 │   ├── components/
 │   │   ├── GanttChart.tsx
+│   │   ├── AlgorithmExplanationModal.tsx
+│   │   ├── AlgorithmSelectionModal.tsx
+│   │   ├── SavedScenariosModal.tsx
+│   │   ├── RandomGeneratorModal.tsx
+│   │   ├── MetricExplanationModal.tsx
+│   │   ├── ShortcutsModal.tsx
+│   │   ├── ProcessStateDiagram.tsx
+│   │   ├── ReadyQueueAnimation.tsx
 │   │   ├── Checkbox.tsx
-│   │   ├── LocomotiveScroll.tsx
-│   │   ├── landing/             # Landing page components
-│   │   └── technologies/       # Tech stack icons
+│   │   ├── landing/                # Landing page components
+│   │   └── technologies/           # Tech stack icons
 │   ├── lib/
-│   │   ├── cpu-scheduler/       # Simulation engine
+│   │   ├── cpu-scheduler/          # Simulation engine
 │   │   │   ├── algorithms/
 │   │   │   │   ├── fcfs.ts
 │   │   │   │   ├── sjf.ts
+│   │   │   │   ├── sjfNonPreemptive.ts
+│   │   │   │   ├── ljf.ts
+│   │   │   │   ├── lrtf.ts
 │   │   │   │   ├── rr.ts
 │   │   │   │   ├── priority.ts
 │   │   │   │   ├── priorityPreemptive.ts
+│   │   │   │   ├── hrrn.ts
 │   │   │   │   ├── mlq.ts
-│   │   │   │   └── mlfq.ts
+│   │   │   │   ├── mlfq.ts
+│   │   │   │   ├── lottery.ts
+│   │   │   │   ├── stride.ts
+│   │   │   │   └── fcfsIo.ts
 │   │   │   ├── evaluator/
-│   │   │   │   └── switcher.ts  # Smart algorithm switcher
+│   │   │   │   └── switcher.ts     # Smart algorithm switcher
+│   │   │   ├── context-switch-cost.ts
 │   │   │   ├── metrics.ts
 │   │   │   └── types.ts
-│   │   ├── url-state.ts         # URL encode/decode simulator state (share links)
-│   │   ├── simulator-presets.ts # Quick-load presets
-│   │   └── export-utils.ts      # CSV, JSON, PNG export
+│   │   ├── algorithm-info.ts       # Names, descriptions, pros/cons for all algorithms
+│   │   ├── custom-algorithm-runner.ts  # Client-side custom (JavaScript) scheduler
+│   │   ├── scenario-utils.ts      # Save/load/import scenarios
+│   │   ├── step-reason.ts          # Step narration / “why this process”
+│   │   ├── url-state.ts            # URL encode/decode (share links)
+│   │   ├── simulator-presets.ts   # Quick-load presets
+│   │   └── export-utils.ts         # CSV, JSON, PNG export
 │   ├── views/
 │   │   ├── Landing.tsx
 │   │   ├── Simulator.tsx
 │   │   ├── InputPage.tsx
 │   │   └── Results.tsx
-│   ├── index.css
-│   └── types.ts
+│   ├── types.ts
+│   └── index.css
 ├── next.config.mjs
 ├── package.json
 ├── tailwind.config.js
